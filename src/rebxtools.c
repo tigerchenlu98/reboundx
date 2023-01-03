@@ -323,13 +323,10 @@ struct reb_vec3d rebx_calc_spin_rel_to_orbit(struct rebx_extras* const rebx, str
     return spin_rot;
 }
 */
-void rebx_rotate_params(struct rebx_extras* const rebx, const struct reb_vec3d normalvec){
-    // Modified from celmech nbody_simulation_utilities.py to include spin angular momentum
+void rebx_rotate_params(struct rebx_extras* const rebx, const struct reb_rotation q){
     struct reb_simulation* const sim = rebx->sim;
-    const int N_real = sim->N - sim->N_var;
-    double Omega, inc;
-    reb_tools_calc_plane_Omega_inc(normalvec, &Omega, &inc);
-    for (int i = 0; i < N_real; i++){
+    const int N = sim->N;
+    for (int i = 0; i < N; i++){
         struct reb_particle* p = &sim->particles[i];
         // Rotate spins
         const double* sx = rebx_get_param(rebx, p->ap, "sx");
@@ -337,11 +334,10 @@ void rebx_rotate_params(struct rebx_extras* const rebx, const struct reb_vec3d n
         const double* sz = rebx_get_param(rebx, p->ap, "sz");
         if (sx != NULL && sy != NULL && sz != NULL){
             struct reb_vec3d spin = {*sx, *sy, *sz};
-            struct reb_vec3d ss = reb_tools_rotate_XYZ_to_orbital_xyz(spin, Omega, inc, 0);
-
-            rebx_set_param_double(rebx, &p->ap, "sx", ss.x);
-            rebx_set_param_double(rebx, &p->ap, "sy", ss.y);
-            rebx_set_param_double(rebx, &p->ap, "sz", ss.z);
+            reb_vec3d_irotate(&spin, q);
+            rebx_set_param_double(rebx, &p->ap, "sx", spin.x);
+            rebx_set_param_double(rebx, &p->ap, "sy", spin.y);
+            rebx_set_param_double(rebx, &p->ap, "sz", spin.z);
         }
     }
 }

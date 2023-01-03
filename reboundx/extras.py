@@ -225,9 +225,11 @@ class Extras(Structure):
 
     # Functions to help with rotations
 
-    def rotate_params(self, normalvec):
+    def rotate_params(self, rotation):
+        if not isinstance(rotation, rebound.Rotation):
+            raise ValueError("Expected a rebound.Rotation object")
         clibreboundx.rebx_rotate_params.restype = None
-        clibreboundx.rebx_rotate_params(byref(self), rebound.Vec3d(normalvec))
+        clibreboundx.rebx_rotate_params(byref(self), rotation)
   
     '''
     def spherical_to_xyz(self, mag, theta, phi):
