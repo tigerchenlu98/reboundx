@@ -69,7 +69,7 @@ int main(int argc, char* argv[]){
     rebx_set_param_double(rebx, &sim->particles[1].ap, "tau", 1./(2.*orb.n*planet_Q));
     // Set spin axis in planet frame
 
-    double mag1 = 7.3e1;
+    double mag1 = spin_1;//7.3e1;
     double theta1 = 1.74532e-2;
     double phi1 = -1.570796;
     char *eptr;
@@ -82,7 +82,7 @@ int main(int argc, char* argv[]){
 
     // Define the inverse transformation: planet frame -> inv frame right now
     struct reb_vec3d lon1 = reb_vec3d_cross((struct reb_vec3d){.z =1}, orb.hvec);  // Line of nodes is the new x-axis
-    struct reb_vec3d* Omega_p1 = rebx_get_param(rebx, sim->particles[1].ap, "Omega");
+    // struct reb_vec3d* Omega_p1 = rebx_get_param(rebx, sim->particles[1].ap, "Omega");
     struct reb_rotation rot1 = reb_rotation_init_to_new_axes(orb.hvec, lon1);      // Arguments to this function are the new z and x axes
     struct reb_rotation rot_test = reb_rotation_inverse(rot1);
 
