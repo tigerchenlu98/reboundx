@@ -72,17 +72,9 @@ int main(int argc, char* argv[]){
 
     double mag1 = spin_1;//7.3e1;
     double theta1 = 1.74532e-2;
-    double phi1 = -1.570796;
-    char *eptr;
-    // phi1 from command line
-    if (argc == 2){
-      //printf("here\n");
-      phi1 = strtod(argv[1], *eptr) * 10. * (M_PI / 180.);
-      //printf("%f", phi1);
-      //sprintf(phi_val, "%d_output.txt", (int) (phi1 * (180 / M_PI) + 1)); // degree value
-    }
+    double phi1 = 0.0;//-1.570796;
 
-    printf("\phi: %f\n", phi1);
+    printf("phi: %e\n", phi1);
 
     // Define the inverse transformation: planet frame -> inv frame right now
     struct reb_vec3d lon1 = reb_vec3d_cross((struct reb_vec3d){.z =1}, orb.hvec);  // Line of nodes is the new x-axis
@@ -128,7 +120,7 @@ int main(int argc, char* argv[]){
 
     reb_integrate(sim, tmax/2);
 
-    //printf("Migration Switching Off\n");
+    printf("Migration Switching Off\n");
     rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_a", INFINITY);
     rebx_set_param_double(rebx, &sim->particles[2].ap, "tau_a", INFINITY);
 
@@ -141,13 +133,12 @@ int main(int argc, char* argv[]){
 void heartbeat(struct reb_simulation* sim){
   if(reb_output_check(sim, tmax/100000)){        // outputs every 100 REBOUND years
     struct rebx_extras* const rebx = sim->extras;
-    //printf(phi_val);
-    //FILE* of_orb = fopen(phi_val, "a");
-    //FILE* of_spins = fopen(phi_val, "a");
-    //if (of_orb == NULL || of_spins == NULL){
-        //reb_error(sim, "Can not open file.");
-        //return;
-    //}
+    FILE* of_orb = fopen("output_orbits_0.txt", "a");
+    FILE* of_spins = fopen("output_spins_0.txt", "a");
+    if (of_orb == NULL || of_spins == NULL){
+        reb_error(sim, "Can not open file.");
+        return;
+    }
 
     struct reb_particle* sun = &sim->particles[0];
     struct reb_particle* p1 = &sim->particles[1];
@@ -196,10 +187,10 @@ void heartbeat(struct reb_simulation* sim){
     double phi2;
     reb_tools_xyz_to_spherical(sv2, &mag2, &theta2, &phi2);
 
-    printf("%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e\n", sim->t, a1, e1, i1, pom1, Om1, norm1.x, norm1.y, norm1.z, a2, e2, i2, pom2, Om2, norm2.x, norm2.y, norm2.z, Omega_sun->x, Omega_sun->y, Omega_sun->z, mag1, theta1, phi1, mag2, theta2, phi2, Omega_p1->x, Omega_p1->y, Omega_p1->z, Omega_p2->x, Omega_p2->y, Omega_p2->z);  // prints the spins and orbits of all bodies
-    //fclose(of_orb);
-    //printf("%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e\n", sim->t, Omega_sun->x, Omega_sun->y, Omega_sun->z, mag1, theta1, phi1, mag2, theta2, phi2, Omega_p1->x, Omega_p1->y, Omega_p1->z, Omega_p2->x, Omega_p2->y, Omega_p2->z);
-    //fclose(of_spins);
+    fprintf(of_orb, "%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e\n", sim->t, a1, e1, i1, pom1, Om1, norm1.x, norm1.y, norm1.z, a2, e2, i2, pom2, Om2, norm2.x, norm2.y, norm2.z);  // prints the spins and orbits of all bodies
+    fclose(of_orb);
+    fprintf(of_spins, "%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e\n", sim->t, Omega_sun->x, Omega_sun->y, Omega_sun->z, mag1, theta1, phi1, mag2, theta2, phi2, Omega_p1->x, Omega_p1->y, Omega_p1->z, Omega_p2->x, Omega_p2->y, Omega_p2->z);
+    fclose(of_spins);
   }
 
   //if(reb_output_check(sim, 100.*M_PI)){        // outputs to the screen
