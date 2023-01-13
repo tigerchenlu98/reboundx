@@ -128,7 +128,7 @@ int main(int argc, char* argv[]){
 
     reb_integrate(sim, tmax/2);
 
-    printf("Migration Switching Off\n");
+    //printf("Migration Switching Off\n");
     rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_a", INFINITY);
     rebx_set_param_double(rebx, &sim->particles[2].ap, "tau_a", INFINITY);
 
