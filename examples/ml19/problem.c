@@ -77,6 +77,8 @@ int main(int argc, char* argv[]){
       phi1 = strtod(argv[1], *eptr) * 10. * (M_PI / 180.);
     }
 
+    printf("phi: %f\n", phi1 * (180. / M_PI));
+
     // Define the inverse transformation: planet frame -> inv frame right now
     struct reb_vec3d lon1 = reb_vec3d_cross((struct reb_vec3d){.z =1}, orb.hvec);  // Line of nodes is the new x-axis
     struct reb_vec3d* Omega_p1 = rebx_get_param(rebx, sim->particles[1].ap, "Omega");
