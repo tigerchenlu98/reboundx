@@ -110,10 +110,10 @@ int main(int argc, char* argv[]){
     double K = 125.;
 
     for (int i = 1; i < sim->N_active; i++){
+      rebx_set_param_double(rebx, &sim->particles[3].ap, "tau_a", mig_rate);
       rebx_set_param_double(rebx, &sim->particles[i].ap, "tau_e", mig_rate / K);
-      //mig_rate /= (1 + i * step);
+      mig_rate /= (1 + i * step);
     }
-    rebx_set_param_double(rebx, &sim->particles[3].ap, "tau_a", mig_rate);
 
     reb_move_to_com(sim);
 
@@ -133,6 +133,7 @@ int main(int argc, char* argv[]){
     printf("\nMigration Switching Off\n");
     for (int i = 1; i < sim->N_active; i++){
       rebx_set_param_double(rebx, &sim->particles[i].ap, "tau_a", INFINITY);
+      rebx_set_param_double(rebx, &sim->particles[i].ap, "tau_e", INFINITY);
     }
     reb_integrate(sim, tmax);
     rebx_free(rebx);
