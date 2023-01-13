@@ -18,7 +18,8 @@
 #include "tides_spin.c"
 
 void heartbeat(struct reb_simulation* sim);
-double tmax = 100 * 2 * M_PI; // set short to run quickly. Set to 4e6 * 2 * M_PI in paper
+//double tmax = 100 * 2 * M_PI; // set short to run quickly. Set to 4e6 * 2 * M_PI in paper
+double tmax = 4e6 * 2 * M_PI;
 
 int main(int argc, char* argv[]){
     struct reb_simulation* sim = reb_create_simulation();
