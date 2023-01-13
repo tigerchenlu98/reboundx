@@ -17,7 +17,8 @@
 #include "tides_spin.c"
 
 void heartbeat(struct reb_simulation* sim);
-double tmax = 1e5 * 2 * M_PI;
+double tmax = 2e5 * 2 * M_PI;
+double delta = 1.02;
 
 int main(int argc, char* argv[]){
     struct reb_simulation* sim = reb_create_simulation();
@@ -27,26 +28,37 @@ int main(int argc, char* argv[]){
     const double solar_rad = 0.117 * 0.00465; // Bodies with structure require radius! This is one solar radius
     reb_add_fmt(sim, "m r", solar_mass, solar_rad);// Central object
 
+    const double innermost_P = 9.206690 * 2. * M_PI / 365.;
+
+    // Trappist-1f
+    const double f_mass = 0.68 * 3e-6;
+    const double f_rad = 1.045 * 4.264e-5;
+    const double f_P = innermost_P;
+    const double f_e = 0.01;
+    const double f_inc = 0.26 * (M_PI / 180.);
+    reb_add_fmt(sim, "m r P e inc", f_mass, f_rad, f_P, f_e, f_inc); // Planet 1
+
+
     // Trappist-1g
     const double g_mass = 1.321 * 3e-6;
     const double g_rad = 1.129 * 4.264e-5;
-    const double g_a = 0.04508048 * 1.09;
+    const double g_P = f_P * (3./2.) * delta;
     const double g_e = 0.061;
     const double g_inc = 0.37 * (M_PI / 180.);
-    reb_add_fmt(sim, "m r a e inc", g_mass, g_rad, g_a, g_e, g_inc); // Planet 1
-
-    struct reb_orbit orb = reb_tools_particle_to_orbit(sim->G, sim->particles[1], sim->particles[0]);
-    double ts = orb.P / 15.; // timestep as a function of orbital period of innermost planet
+    reb_add_fmt(sim, "m r P e inc", g_mass, g_rad, g_P, g_e, g_inc); // Planet 1
 
     // Trappist-1h
     const double h_mass = 0.326 * 3e-6;
     const double h_rad = 0.755 * 4.264e-5;
-    const double h_a = 0.06189 * 1.1;
+    const double h_P = g_P * (3./2.) * delta;
     const double h_e = 0.0;
     const double h_inc = 0.195 * (M_PI / 180.);
-    reb_add_fmt(sim, "m r a e inc", h_mass, h_rad, h_a, h_e, h_inc);
+    reb_add_fmt(sim, "m r P e inc", h_mass, h_rad, h_P, h_e, h_inc);
 
-    sim->N_active = 3;
+    struct reb_orbit orb = reb_tools_particle_to_orbit(sim->G, sim->particles[1], sim->particles[0]);
+    double ts = orb.P / 15.; // timestep as a function of orbital period of innermost planet
+
+    sim->N_active = 4;
     sim->integrator = REB_INTEGRATOR_WHFAST;
     sim->dt = ts;
     sim->heartbeat = heartbeat;
@@ -93,12 +105,19 @@ int main(int argc, char* argv[]){
     struct rebx_force* mo = rebx_load_force(rebx, "modify_orbits_forces");
     rebx_add_force(rebx, mo);
 
-    rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_a", -3e5 * 2 * M_PI);
-    rebx_set_param_double(rebx, &sim->particles[2].ap, "tau_a", (-3e5 * 2 * M_PI) / 1.1);
+    double mig_rate = -3e5 * 2 * M_PI;
+    double step = 0.05;
+    double K = 125.;
+
+    for (int i = 1; i < sim->N_active; i++){
+      rebx_set_param_double(rebx, &sim->particles[i].ap, "tau_e", mig_rate / K);
+      //mig_rate /= (1 + i * step);
+    }
+    rebx_set_param_double(rebx, &sim->particles[3].ap, "tau_a", mig_rate);
 
     reb_move_to_com(sim);
 
-    struct reb_vec3d newz = rebx_tools_total_angular_momentum(rebx);
+    struct reb_vec3d newz = reb_vec3d_add(reb_tools_angular_momentum(sim), rebx_tools_spin_angular_momentum(rebx));
     struct reb_vec3d newx = reb_vec3d_cross((struct reb_vec3d){.z =1}, newz);
     struct reb_rotation rot = reb_rotation_init_to_new_axes(newz, newx);
 
@@ -107,14 +126,14 @@ int main(int argc, char* argv[]){
 
     system("rm -v output.txt"); // remove previous output file
     FILE* of = fopen("output.txt", "a");
-    fprintf(of, "t,a1,i1,e1,pom1,Om1,mag1,theta1,phi1,a2,i2,e2,pom2,Om2,mag2,theta2,phi2\n");
+    fprintf(of, "t,a1,i1,e1,pom1,Om1,mag1,theta1,phi1,a2,i2,e2,pom2,Om2,mag2,theta2,phi2,a3,i3,e3,pom3,Om3,mag3,theta3,phi3\n");
     fclose(of);
     reb_integrate(sim, tmax/2);
 
     printf("\nMigration Switching Off\n");
-    rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_a", INFINITY);
-    rebx_set_param_double(rebx, &sim->particles[2].ap, "tau_a", INFINITY);
-
+    for (int i = 1; i < sim->N_active; i++){
+      rebx_set_param_double(rebx, &sim->particles[i].ap, "tau_a", INFINITY);
+    }
     reb_integrate(sim, tmax);
     rebx_free(rebx);
     reb_free_simulation(sim);
