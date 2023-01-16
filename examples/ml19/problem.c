@@ -68,23 +68,7 @@ int main(int argc, char* argv[]){
     rebx_set_param_double(rebx, &sim->particles[1].ap, "I", 0.25 * p1_mass * p1_rad * p1_rad);
 
     rebx_set_param_double(rebx, &sim->particles[1].ap, "tau", 1./(2.*orb.n*planet_Q));
-    // Set spin axis in planet frame
-
-    double mag1 = spin_1;//7.3e1;
-    double theta1 = 1.74532e-2;
-    double phi1 = 0.0;//-1.570796;
-
-    printf("phi: %e\n", phi1);
-
-    // Define the inverse transformation: planet frame -> inv frame right now
-    struct reb_vec3d lon1 = reb_vec3d_cross((struct reb_vec3d){.z =1}, orb.hvec);  // Line of nodes is the new x-axis
-    // struct reb_vec3d* Omega_p1 = rebx_get_param(rebx, sim->particles[1].ap, "Omega");
-    struct reb_rotation rot1 = reb_rotation_init_to_new_axes(orb.hvec, lon1);      // Arguments to this function are the new z and x axes
-    struct reb_rotation rot_test = reb_rotation_inverse(rot1);
-
-    struct reb_vec3d temp_p = reb_tools_spherical_to_xyz(mag1, theta1, phi1);
-    struct reb_vec3d sv1 = reb_vec3d_rotate(temp_p, rot_test);
-    rebx_set_param_vec3d(rebx, &sim->particles[1].ap, "Omega", sv1);
+    rebx_set_param_vec3d(rebx, &sim->particles[1].ap, "Omega", (struct reb_vec3d){.y=spin_1 * -0.0261769, .z=spin_1 * 0.99965732});
 
     // P2
     double spin_period_2 = 3. * 2. * M_PI / 365.; // 3 days in REBOUND time units
@@ -95,6 +79,19 @@ int main(int argc, char* argv[]){
 
     struct reb_orbit orb2 = reb_tools_particle_to_orbit(sim->G, sim->particles[2], sim->particles[0]);
     rebx_set_param_double(rebx, &sim->particles[2].ap, "tau", 1./(2.*orb2.n*planet_Q));
+
+    double mag2 = spin_2;//7.3e1;
+    double theta2 = 1.745411e-02;
+    double phi2 = 0.0;//-1.570796;
+
+    // Define the inverse transformation: planet frame -> inv frame right now
+    struct reb_vec3d lon2 = reb_vec3d_cross((struct reb_vec3d){.z =1}, orb2.hvec);  // Line of nodes is the new x-axis
+    struct reb_rotation rot2 = reb_rotation_init_to_new_axes(orb2.hvec, lon2);      // Arguments to this function are the new z and x axes
+    struct reb_rotation rot_test = reb_rotation_inverse(rot2);
+
+    struct reb_vec3d temp_p = reb_tools_spherical_to_xyz(mag2, theta2, phi2);
+    struct reb_vec3d sv2 = reb_vec3d_rotate(temp_p, rot_test);
+    rebx_set_param_vec3d(rebx, &sim->particles[2].ap, "Omega", sv2);
 
     // And migration
     struct rebx_force* mo = rebx_load_force(rebx, "modify_orbits_forces");
@@ -133,8 +130,8 @@ int main(int argc, char* argv[]){
 void heartbeat(struct reb_simulation* sim){
   if(reb_output_check(sim, tmax/100000)){        // outputs every 100 REBOUND years
     struct rebx_extras* const rebx = sim->extras;
-    FILE* of_orb = fopen("output_orbits_0.txt", "a");
-    FILE* of_spins = fopen("output_spins_0.txt", "a");
+    FILE* of_orb = fopen("output_orbits_p2_0.txt", "a");
+    FILE* of_spins = fopen("output_spins_p2_0.txt", "a");
     if (of_orb == NULL || of_spins == NULL){
         reb_error(sim, "Can not open file.");
         return;
