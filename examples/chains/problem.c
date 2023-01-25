@@ -28,7 +28,8 @@ int main(int argc, char* argv[]){
     const double solar_rad = 0.117 * 0.00465; // Bodies with structure require radius! This is one solar radius
     reb_add_fmt(sim, "m r", solar_mass, solar_rad);// Central object
 
-    const double innermost_P = 9.206690 * 2. * M_PI / 365.;
+    // const double innermost_P = 9.206690 * 2. * M_PI / 365.; // f
+    const double innermost_P = 12.35294 * 2. * M_PI / 365;
 
     // Trappist-1f
     const double f_mass = 0.68 * 3e-6;
@@ -36,13 +37,13 @@ int main(int argc, char* argv[]){
     const double f_P = innermost_P;
     const double f_e = 0.01;
     const double f_inc = 0.26 * (M_PI / 180.);
-    reb_add_fmt(sim, "m r P e inc", f_mass, f_rad, f_P, f_e, f_inc); // Planet 1
+    // reb_add_fmt(sim, "m r P e inc", f_mass, f_rad, f_P, f_e, f_inc); // Planet 1
 
 
     // Trappist-1g
     const double g_mass = 1.321 * 3e-6;
     const double g_rad = 1.129 * 4.264e-5;
-    const double g_P = f_P * (3./2.) * delta;
+    const double g_P = innermost_P; //f_P * (3./2.) * delta;
     const double g_e = 0.061;
     const double g_inc = 0.37 * (M_PI / 180.);
     reb_add_fmt(sim, "m r P e inc", g_mass, g_rad, g_P, g_e, g_inc); // Planet 1
@@ -58,7 +59,7 @@ int main(int argc, char* argv[]){
     struct reb_orbit orb = reb_tools_particle_to_orbit(sim->G, sim->particles[1], sim->particles[0]);
     double ts = orb.P / 15.; // timestep as a function of orbital period of innermost planet
 
-    sim->N_active = 4;
+    sim->N_active = 3;
     sim->integrator = REB_INTEGRATOR_WHFAST;
     sim->dt = ts;
     sim->heartbeat = heartbeat;
@@ -93,7 +94,8 @@ int main(int argc, char* argv[]){
       // tidally locked & 0 obliquity
       struct reb_orbit orb = reb_tools_particle_to_orbit(sim->G, sim->particles[i], sim->particles[0]);
       const double spin_period = orb.P;
-      const double spin_rate = 2 * M_PI / spin_period;
+      const double spin_rate = (2. * M_PI / spin_period);
+      printf("%e\n", orb.a);
 
       struct reb_vec3d norm = orb.hvec;
       struct reb_vec3d nhat = reb_vec3d_normalize(norm);
@@ -106,11 +108,11 @@ int main(int argc, char* argv[]){
     rebx_add_force(rebx, mo);
 
     double mig_rate = -3e5 * 2 * M_PI;
-    double step = 0.05;
+    double step = 0.1;
     double K = 125.;
 
     for (int i = 1; i < sim->N_active; i++){
-      rebx_set_param_double(rebx, &sim->particles[3].ap, "tau_a", mig_rate);
+      rebx_set_param_double(rebx, &sim->particles[i].ap, "tau_a", mig_rate);
       rebx_set_param_double(rebx, &sim->particles[i].ap, "tau_e", mig_rate / K);
       mig_rate /= (1 + i * step);
     }

@@ -37,7 +37,9 @@ int main(int argc, char* argv[]){
     const double p2_rad = 2.5 * 4.26e-5;
     reb_add_fmt(sim, "m a e r inc Omega pomega M", p2_mass, 0.23290608, 0.01, p2_rad, -0.431 * (M_PI / 180.), 0.0 * (M_PI / 180.), 0.0 * (M_PI / 180.), 0.0 * (M_PI / 180.)); // Planet 2
     sim->N_active = 3;
-    sim->integrator = REB_INTEGRATOR_WHFAST;
+    sim->integrator = REB_INTEGRATOR_BS;
+    sim->ri_bs.eps_abs = 1e-10;
+    sim->ri_bs.eps_rel = 1e-10;
     sim->dt = 1e-3;
     sim->heartbeat = heartbeat;
 
@@ -79,7 +81,7 @@ int main(int argc, char* argv[]){
 
     struct reb_orbit orb2 = reb_tools_particle_to_orbit(sim->G, sim->particles[2], sim->particles[0]);
     rebx_set_param_double(rebx, &sim->particles[2].ap, "tau", 1./(2.*orb2.n*planet_Q));
-
+/*
     double mag2 = spin_2;//7.3e1;
     double theta2 = 1.745411e-02;
     double phi2 = 0.0;//-1.570796;
@@ -92,6 +94,7 @@ int main(int argc, char* argv[]){
     struct reb_vec3d temp_p = reb_tools_spherical_to_xyz(mag2, theta2, phi2);
     struct reb_vec3d sv2 = reb_vec3d_rotate(temp_p, rot_test);
     rebx_set_param_vec3d(rebx, &sim->particles[2].ap, "Omega", sv2);
+    */
 
     // And migration
     struct rebx_force* mo = rebx_load_force(rebx, "modify_orbits_forces");
@@ -115,6 +118,9 @@ int main(int argc, char* argv[]){
     //system("rm -v output_orbits.txt"); // remove previous output files
     //system("rm -v output_spins.txt");
 
+    // Simulation Archive
+    reb_simulationarchive_automate_interval(sim,"archive_01_25_low_eps.bin",1000.);
+
     reb_integrate(sim, tmax/2);
 
     printf("Migration Switching Off\n");
@@ -130,8 +136,8 @@ int main(int argc, char* argv[]){
 void heartbeat(struct reb_simulation* sim){
   if(reb_output_check(sim, tmax/100000)){        // outputs every 100 REBOUND years
     struct rebx_extras* const rebx = sim->extras;
-    FILE* of_orb = fopen("output_orbits_p2_0.txt", "a");
-    FILE* of_spins = fopen("output_spins_p2_0.txt", "a");
+    FILE* of_orb = fopen("output_orbits_01_25_BS_low_eps.txt", "a");
+    FILE* of_spins = fopen("output_spins_01_25_BS_low_eps.txt", "a");
     if (of_orb == NULL || of_spins == NULL){
         reb_error(sim, "Can not open file.");
         return;
