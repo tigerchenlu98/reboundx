@@ -15,7 +15,7 @@ int main(int argc, char* argv[]){
     struct reb_simulation* sim = reb_create_simulation();
     // Initial conditions
     // Setup constants
-    sim->integrator         = REB_INTEGRATOR_WHFAST;
+    sim->integrator         = REB_INTEGRATOR_IAS15;
     sim->heartbeat          = heartbeat;
 
     // Initial conditions
@@ -26,23 +26,32 @@ int main(int argc, char* argv[]){
     reb_add(sim, star);
 
     // struct reb_particle planet = {0};
-    double planet_m  = 0.88 * 9.55e-4; // A Jupiter-like planet
-    double planet_r = 1.2 * 4.676e-4;
-    double planet_a = 0.0432;
-    double planet_e = 0.05;
+    double planet_m  = 0.85 * 9.55e-4; // A Jupiter-like planet
+    double planet_r = 1.5 * 4.676e-4;
+    double planet_a = 0.043;
+    double planet_e = 0.005;
     double planet_inc = 0.0 * (M_PI / 180.);
-    double planet_pomega = 70. * (M_PI / 180.);
+    double planet_pomega = 0. * (M_PI / 180.);
     reb_add_fmt(sim, "m r a e inc pomega", planet_m, planet_r, planet_a, planet_e, planet_inc, planet_pomega);
 
     struct reb_orbit orb = reb_tools_particle_to_orbit(sim->G, sim->particles[1], sim->particles[0]);
-    sim->dt = orb.P / 15.12345;
+    //sim->dt = orb.P / 15.12345;
 
     // The perturber - treated as a point particle
-    double perturber_m  = 15.2 * 9.55e-4 / cos(planet_inc);
-    double perturber_a = 1.186;
-    double perturber_e = 0.691;
+    double perturber_m  = 15.2 * 9.55e-4;
+    double perturber_a = 1.7;
+    double perturber_e = 0.1;
+    double perturber_inc = 15.0 * (M_PI / 180.);
     //double perturber_inc = 0.5 * (M_PI / 180.);
-    reb_add_fmt(sim, "m a e", perturber_m, perturber_a, perturber_e);
+    reb_add_fmt(sim, "m a e inc", perturber_m, perturber_a, perturber_e, perturber_inc);
+
+    // The scattered body - treated as a point particle
+    double eject_m  = 12. * 9.55e-4;
+    double eject_a = 3.097;
+    double eject_e = 0.05;
+    double eject_inc = 15.0 * (M_PI / 180.);
+    //double perturber_inc = 0.5 * (M_PI / 180.);
+    reb_add_fmt(sim, "m a e inc", eject_m, eject_a, eject_e, eject_inc);
 
     // Add REBOUNDx effects
     // First tides_spin
@@ -80,7 +89,7 @@ int main(int argc, char* argv[]){
     struct reb_vec3d Omega_p = reb_vec3d_mul(nhat, spin_p); // begin with 0 obliquity
     rebx_set_param_vec3d(rebx, &sim->particles[1].ap, "Omega", Omega_p);
 
-    const double planet_Q = 10.;
+    const double planet_Q = 40.;
     rebx_set_param_double(rebx, &sim->particles[1].ap, "tau", 1./(2.*planet_Q*orb.n));
 
 
@@ -100,9 +109,9 @@ int main(int argc, char* argv[]){
 
     rebx_spin_initialize_ode(rebx, effect);
 
-    system("rm -v output.txt");        // delete previous output file
-    FILE* of = fopen("output.txt", "a");
-    fprintf(of, "t,ssx,ssy,ssz,mag1,theta1,phi1,a1,e1,i1,Om1,pom1,a2,e2,i2,Om2,pom2\n");
+    //system("rm -v output.txt");        // delete previous output file
+    FILE* of = fopen("scattering.txt", "a");
+    fprintf(of, "t,ssx,ssy,ssz,sbx,sby,sbz,a1,e1,i1,Om1,pom1,nbx,nby,nbz,a2,e2,i2,Om2,pom2,ncx,ncy,ncz,ad,ed\n");
     fclose(of);
 
     reb_integrate(sim, tmax);
@@ -115,7 +124,7 @@ void heartbeat(struct reb_simulation* sim){
     // Output spin and orbital information to file
     if(reb_output_check(sim, 10)){        // outputs every 10 REBOUND years
       struct rebx_extras* const rebx = sim->extras;
-      FILE* of = fopen("output.txt", "a");
+      FILE* of = fopen("scattering.txt", "a");
       if (of==NULL){
           reb_error(sim, "Can not open file.");
           return;
@@ -124,6 +133,7 @@ void heartbeat(struct reb_simulation* sim){
       struct reb_particle* sun = &sim->particles[0];
       struct reb_particle* p1 = &sim->particles[1];
       struct reb_particle* pert = &sim->particles[2];
+      struct reb_particle* ej = &sim->particles[3];
 
       // orbits
       struct reb_orbit o1 = reb_tools_particle_to_orbit(sim->G, *p1, *sun);
@@ -141,6 +151,11 @@ void heartbeat(struct reb_simulation* sim){
       double i2 = o2.inc;
       double Om2 = o2.Omega;
       double pom2 = o2.pomega;
+      struct reb_vec3d n2 = o2.hvec;
+
+      struct reb_orbit o3 = reb_tools_particle_to_orbit(sim->G, *ej, com);
+      double a3 = o3.a;
+      double e3 = o3.e;
 
       struct reb_vec3d* Omega_sun = rebx_get_param(rebx, sun->ap, "Omega");
 
@@ -148,17 +163,17 @@ void heartbeat(struct reb_simulation* sim){
       struct reb_vec3d* Omega_p_inv = rebx_get_param(rebx, p1->ap, "Omega");
 
       // Transform spin vector into planet frame, w/ z-axis aligned with orbit normal and x-axis aligned with line of nodes
-      struct reb_vec3d line_of_nodes = reb_vec3d_cross((struct reb_vec3d){.z =1}, n1);
-      struct reb_rotation rot = reb_rotation_init_to_new_axes(n1, line_of_nodes); // Arguments to this function are the new z and x axes
-      struct reb_vec3d srot = reb_vec3d_rotate(*Omega_p_inv, rot); // spin vector in the planet's frame
+      //struct reb_vec3d line_of_nodes = reb_vec3d_cross((struct reb_vec3d){.z =1}, n1);
+      //struct reb_rotation rot = reb_rotation_init_to_new_axes(n1, line_of_nodes); // Arguments to this function are the new z and x axes
+      //struct reb_vec3d srot = reb_vec3d_rotate(*Omega_p_inv, rot); // spin vector in the planet's frame
 
       // Interpret the spin axis in the more natural spherical coordinates
-      double mag_p;
-      double theta_p;
-      double phi_p;
-      reb_tools_xyz_to_spherical(srot, &mag_p, &theta_p, &phi_p);
+      //double mag_p;
+      //double theta_p;
+      //double phi_p;
+      //reb_tools_xyz_to_spherical(srot, &mag_p, &theta_p, &phi_p);
 
-      fprintf(of, "%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e\n", sim->t, Omega_sun->x, Omega_sun->y, Omega_sun->z, mag_p, theta_p, phi_p, a1, e1, i1, Om1, pom1, a2, e2, i2, Om2, pom2); // print spins and orbits
+      fprintf(of, "%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e\n", sim->t, Omega_sun->x, Omega_sun->y, Omega_sun->z, Omega_p_inv->x, Omega_p_inv->y, Omega_p_inv->z, a1, e1, i1, Om1, pom1,n1.x,n1.y,n1.z,a2, e2, i2, Om2, pom2, n2.x,n2.y,n2.z, a3, e3); // print spins and orbits
 
       fclose(of);
     }

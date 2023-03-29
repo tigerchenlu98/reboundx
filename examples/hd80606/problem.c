@@ -42,7 +42,7 @@ int main(int argc, char* argv[]){
     reb_add_fmt(sim, "m r a e", planet_m, planet_r, planet_a, planet_e);
 
     // The perturber
-    double perturber_inc = 85.6 * (M_PI / 180.);
+    double perturber_inc = 89. * (M_PI / 180.);
     double perturber_mass = 1.1;
     double perturber_a  = 1000.;
     double perturber_e = 0.5;
@@ -62,28 +62,26 @@ int main(int argc, char* argv[]){
     rebx_set_param_vec3d(rebx, &sim->particles[0].ap, "Omega", (struct reb_vec3d){.z=solar_spin});
 
     //double solar_Q = 1e6;
-    //struct reb_orbit orb = reb_tools_particle_to_orbit(sim->G, sim->particles[1], sim->particles[0]);
+    struct reb_orbit orb = reb_tools_particle_to_orbit(sim->G, sim->particles[1], sim->particles[0]);
     //double solar_tau = 1 / (2 * solar_Q * orb.n);
     rebx_set_param_double(rebx, &sim->particles[0].ap, "tau", solar_tau);
-    printf("solar tau: %e\n", solar_tau);
 
     // P1
     const double spin_period_p = (10./24.) * 2. * M_PI / 365.; // days to reb years
     const double spin_p = (2. * M_PI) / spin_period_p;
     const double planet_k2 = 0.51;
-    const double planet_Q = 3e6;
-    const double planet_tau = (0.02 / planet_k2) * (1 / 86400.) * 2 * M_PI / 365.; // seconds to reb years
+    const double planet_Q = 100.;
+    // const double planet_tau = (0.02 / planet_k2) * (1 / 86400.) * 2 * M_PI / 365.; // seconds to reb years
     const double theta_1 = 0. * M_PI / 180.;
     const double phi_1 = 0. * M_PI / 180;
     rebx_set_param_double(rebx, &sim->particles[1].ap, "k2", planet_k2);
     rebx_set_param_double(rebx, &sim->particles[1].ap, "I", 0.25 * planet_m * planet_r * planet_r);
-    
+
     struct reb_vec3d Omega_sv = reb_tools_spherical_to_xyz(spin_p, theta_1, phi_1);
     rebx_set_param_vec3d(rebx, &sim->particles[1].ap, "Omega", Omega_sv);
-    //double planet_tau = 1. / (2. * planet_Q * orb.n);
+    double planet_tau = 1. / (2. * planet_Q * orb.n);
     rebx_set_param_double(rebx, &sim->particles[1].ap, "tau", planet_tau);
-   
-    printf("planet tau: %e\n", planet_tau);
+
 
 
     // add GR:
@@ -93,18 +91,18 @@ int main(int argc, char* argv[]){
     rebx_set_param_double(rebx, &gr->ap, "c", 10065.32); // in default units
 
     reb_move_to_com(sim);
-    
-    struct reb_vec3d newz = rebx_tools_total_angular_momentum(rebx);
-    struct reb_vec3d newx = reb_vec3d_cross((struct reb_vec3d){.z=1}, newz);
-    struct reb_rotation rot = reb_rotation_init_to_new_axes(newz,newx);
-    rebx_simulation_irotate(rebx, rot);
+
+    struct reb_vec3d newz = reb_vec3d_add(reb_tools_angular_momentum(sim), rebx_tools_spin_angular_momentum(rebx));
+    struct reb_vec3d newx = reb_vec3d_cross((struct reb_vec3d){.z =1}, newz);
+    struct reb_rotation rot = reb_rotation_init_to_new_axes(newz, newx);
+    rebx_simulation_irotate(rebx, rot); // This rotates our simulation into the invariable plane aligned with the total ang. momentum (including spin)
 
     rebx_spin_initialize_ode(rebx, effect);
 
-    FILE* f = fopen("01_10_winn09_lec10_biggest_tau.txt","w");
+    FILE* f = fopen("output.txt","w");
     fprintf(f, "t,star_sx,star_sy,star_sz,magstar,a1,i1,e1,s1x,s1y,s1z,mag1,pom1,Om1,f1,a2,i2,e2,Om2,pom2,o1x,o1y,o1z,o2x,o2y,o2z\n");
 
-    for (int i=0; i<10000000; i++){
+    for (int i=0; i<100000; i++){
         struct reb_particle* sun = &sim->particles[0];
         struct reb_particle* p1 = &sim->particles[1];
         struct reb_particle* pert = &sim->particles[2];
@@ -120,7 +118,7 @@ int main(int argc, char* argv[]){
         double s1y = Omega_p->y;
         double s1z = Omega_p->z;
         double mag1 = sqrt(s1x * s1x +s1y * s1y + s1z * s1z);
-            
+
 
         struct reb_orbit o1 = reb_tools_particle_to_orbit(sim->G, *p1, *sun);
         double a1 = o1.a;
@@ -139,6 +137,8 @@ int main(int argc, char* argv[]){
         double pom2 = o2.pomega;
         double e2 = o2.e;
         struct reb_vec3d norm2 = o2.hvec;
+
+        //printf("Here\n");
 
         fprintf(f, "%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%.e,%e,%e,%e,%e,%e,%e,%e\n", sim->t, star_sx, star_sy, star_sz, magstar, a1, i1, e1, s1x, s1y, s1z, mag1, pom1, Om1, f1, a2, i2, e2, Om2, pom2, norm1.x, norm1.y, norm1.z, norm2.x, norm2.y, norm2.z);
         reb_integrate(sim, sim->t+(100 * 2 * M_PI));
