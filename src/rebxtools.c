@@ -271,5 +271,4 @@ void rebx_simulation_irotate(struct rebx_extras* const rebx, const struct reb_ro
             reb_vec3d_irotate(Omega, q);
         }
     }
-    exit(1);
 }
