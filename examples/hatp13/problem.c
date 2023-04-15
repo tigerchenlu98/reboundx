@@ -12,7 +12,7 @@ double tmax;
 double k2;
 int i_glob;
 int j_glob;
-char title[100] = "out_k2_05_minc_0.txt";
+char title[100] = "out_hd47186.txt";
 
 double obl(struct reb_vec3d v1, struct reb_vec3d v2){
   return acos(reb_vec3d_dot(v1,v2) / (sqrt(reb_vec3d_length_squared(v1)) * sqrt(reb_vec3d_length_squared(v2))));
@@ -22,24 +22,25 @@ int main(int argc, char* argv[]){
   double k2s[10] = {0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
   double mincs[10] = {0.0, 5., 10., 15., 20., 25., 30., 35., 40., 45., 50., -5., -10., -15., -20.};
 
-  //system("rm -v out.txt");        // delete previous output file
+  //system("rm -v out_hd83443.txt");        // delete previous output file
   //FILE* of = fopen(title, "w");
+  const double planet_k2 = 0.3;//k2s[8];
+  double minc = 0.0;//mincs[3];
 
   struct reb_particle star = {0};
-  star.m  = 1.22;
-  star.r = 1.56 * 0.00465;
+  star.m  = 1.0;
+  star.r = 1.1 * 0.00465;
 
-  double planet_m  = 0.851 * 9.55e-4; // A Jupiter-like planet
-  double planet_r = 1.28 * 4.676e-4;
-  double planet_a = 0.0426;
-  double planet_e = 0.04;//0.021;
-  double planet_inc = 0.0 * M_PI / 180.;//0.021;
+  double planet_m  = 0.07 * 9.55e-4;
+  double planet_r = 0.3 * 4.676e-4;
+  double planet_a = 0.05;
+  double planet_e = 0.05;//0.021;
+  double planet_inc = 5.0 * M_PI / 180.;//0.021;
 
   // The perturber - treated as a point particle
-  double perturber_a = 1.186;
-  double perturber_e = 0.691;
+  double perturber_a = 2.395;
+  double perturber_e = 0.249;
   double perturber_m;
-  double minc;
   double perturber_inc;
 
   //double k2s[3] =  {0.1, 0.2, 0.3};
@@ -57,11 +58,9 @@ int main(int argc, char* argv[]){
 
   // struct reb_particle planet = {0};
   reb_add_fmt(sim, "m r a e inc", planet_m, planet_r, planet_a, planet_e, planet_inc);
-
-  minc = mincs[0];
   printf("%f\n", minc);
-  perturber_inc = minc * M_PI / 180.;
-  perturber_m  = 15.2 * 9.55e-4 / cos(fabs(planet_inc - perturber_inc));
+  perturber_inc = 0. * M_PI / 180.;
+  perturber_m  = 0.3506 * 9.55e-4 / cos(fabs(planet_inc - perturber_inc));
   reb_add_fmt(sim, "m a e inc", perturber_m, perturber_a, perturber_e, perturber_inc);
 
   struct reb_orbit orb = reb_tools_particle_to_orbit(sim->G, sim->particles[1], sim->particles[0]);
@@ -90,7 +89,6 @@ int main(int argc, char* argv[]){
   // rebx_set_param_double(rebx, &sim->particles[0].ap, "tau", solar_tau);
 
   // Planet
-  const double planet_k2 = k2s[0];
   k2 = planet_k2;
   rebx_set_param_double(rebx, &sim->particles[1].ap, "k2", planet_k2);
   rebx_set_param_double(rebx, &sim->particles[1].ap, "I", 0.51 * planet_m * planet_r * planet_r);
@@ -201,7 +199,7 @@ void heartbeat(struct reb_simulation* sim){
       fclose(of);
     }
 
-    //if(reb_output_check(sim, 20.*M_PI)){        // outputs to the screen
-    //    reb_output_timing(sim, tmax);
-    //}
+    if(reb_output_check(sim, 20.*M_PI)){        // outputs to the screen
+        reb_output_timing(sim, tmax);
+    }
 }
