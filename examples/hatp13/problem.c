@@ -12,7 +12,7 @@ double tmax = 1e6 * 2* M_PI;
 double k2;
 int i_glob;
 int j_glob;
-char title[100] = "out_hatp11.txt";
+char title[100] = "out_hatp11_inclined.txt";
 
 double obl(struct reb_vec3d v1, struct reb_vec3d v2){
   return acos(reb_vec3d_dot(v1,v2) / (sqrt(reb_vec3d_length_squared(v1)) * sqrt(reb_vec3d_length_squared(v2))));
@@ -22,7 +22,7 @@ int main(int argc, char* argv[]){
   double k2s[10] = {0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
   double mincs[10] = {0.0, 5., 10., 15., 20., 25., 30., 35., 40., 45., 50., -5., -10., -15., -20.};
 
-  system("rm -v out_hatp11.txt");        // delete previous output file
+  system("rm -v out_hatp11_inclined.txt");        // delete previous output file
   //FILE* of = fopen(title, "w");
   const double planet_k2 = 0.3;//k2s[8];
   double minc = 0.0;//mincs[3];
@@ -35,7 +35,7 @@ int main(int argc, char* argv[]){
   double planet_r = 0.43 * 4.676e-4;
   double planet_a = 0.0525;
   double planet_e = 0.24;//0.021;
-  double planet_inc = 0.0 * M_PI / 180.;//0.021;
+  double planet_inc = 100.0 * M_PI / 180.;//0.021;
 
   // The perturber - treated as a point particle
   double perturber_a = 4.13;
