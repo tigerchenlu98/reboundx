@@ -8,11 +8,11 @@
  #include "tides_spin.c"
 
 void heartbeat(struct reb_simulation* r);
-double tmax;
+double tmax = 1e6 * 2* M_PI;
 double k2;
 int i_glob;
 int j_glob;
-char title[100] = "out_hd47186.txt";
+char title[100] = "out_hatp11.txt";
 
 double obl(struct reb_vec3d v1, struct reb_vec3d v2){
   return acos(reb_vec3d_dot(v1,v2) / (sqrt(reb_vec3d_length_squared(v1)) * sqrt(reb_vec3d_length_squared(v2))));
@@ -22,24 +22,24 @@ int main(int argc, char* argv[]){
   double k2s[10] = {0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5};
   double mincs[10] = {0.0, 5., 10., 15., 20., 25., 30., 35., 40., 45., 50., -5., -10., -15., -20.};
 
-  //system("rm -v out_hd83443.txt");        // delete previous output file
+  system("rm -v out_hatp11.txt");        // delete previous output file
   //FILE* of = fopen(title, "w");
   const double planet_k2 = 0.3;//k2s[8];
   double minc = 0.0;//mincs[3];
 
   struct reb_particle star = {0};
-  star.m  = 1.0;
-  star.r = 1.1 * 0.00465;
+  star.m  = 0.809;
+  star.r = 0.683 * 0.00465;
 
-  double planet_m  = 0.07 * 9.55e-4;
-  double planet_r = 0.3 * 4.676e-4;
-  double planet_a = 0.05;
-  double planet_e = 0.05;//0.021;
-  double planet_inc = 5.0 * M_PI / 180.;//0.021;
+  double planet_m  = 0.09 * 9.55e-4;
+  double planet_r = 0.43 * 4.676e-4;
+  double planet_a = 0.0525;
+  double planet_e = 0.24;//0.021;
+  double planet_inc = 0.0 * M_PI / 180.;//0.021;
 
   // The perturber - treated as a point particle
-  double perturber_a = 2.395;
-  double perturber_e = 0.249;
+  double perturber_a = 4.13;
+  double perturber_e = 0.601;
   double perturber_m;
   double perturber_inc;
 
@@ -60,7 +60,7 @@ int main(int argc, char* argv[]){
   reb_add_fmt(sim, "m r a e inc", planet_m, planet_r, planet_a, planet_e, planet_inc);
   printf("%f\n", minc);
   perturber_inc = 0. * M_PI / 180.;
-  perturber_m  = 0.3506 * 9.55e-4 / cos(fabs(planet_inc - perturber_inc));
+  perturber_m  = 1.60 * 9.55e-4 / cos(fabs(planet_inc - perturber_inc));
   reb_add_fmt(sim, "m a e inc", perturber_m, perturber_a, perturber_e, perturber_inc);
 
   struct reb_orbit orb = reb_tools_particle_to_orbit(sim->G, sim->particles[1], sim->particles[0]);
@@ -100,7 +100,7 @@ int main(int argc, char* argv[]){
   struct reb_vec3d Omega_sv = reb_tools_spherical_to_xyz(spin_p, theta_p, phi_p);
   rebx_set_param_vec3d(rebx, &sim->particles[1].ap, "Omega", Omega_sv);
 
-  const double planet_Q = 10;
+  const double planet_Q = 1000;
   rebx_set_param_double(rebx, &sim->particles[1].ap, "tau", 1./(2.*planet_Q*orb.n));
 
 
@@ -129,7 +129,7 @@ int main(int argc, char* argv[]){
   //reb_simulationarchive_automate_step(sim, "archive.bin", 20000);
 
   tmax = 6. * ((2. / (21 * orb.n)) * (planet_Q / planet_k2) * (planet_m / star.m) * pow((orb.a / planet_r), 5));
-  printf("%f\n", tmax);
+  // printf("%f\n", tmax);
   //printf("tmax = %f years\n", tmax / 2 * M_PI);
 
   reb_integrate(sim, tmax);
@@ -140,7 +140,7 @@ int main(int argc, char* argv[]){
 
 void heartbeat(struct reb_simulation* sim){
     // Output spin and orbital information to file
-    if(reb_output_check(sim, 100)){        // outputs every 100 years
+    if(reb_output_check(sim, 10)){        // outputs every 100 years
       struct rebx_extras* const rebx = sim->extras;
       FILE* of = fopen(title, "a");
       if (of==NULL){
@@ -170,6 +170,7 @@ void heartbeat(struct reb_simulation* sim){
       double pom2 = o2.pomega;
       struct reb_vec3d n2 = o2.hvec;
 
+
       struct reb_vec3d* Omega_sun = rebx_get_param(rebx, sun->ap, "Omega");
 
       // Interpret planet spin in the rotating planet frame
@@ -195,7 +196,7 @@ void heartbeat(struct reb_simulation* sim){
       reb_tools_xyz_to_spherical(srot, &mag_p, &theta_p, &phi_p);
 
       fprintf(of, "%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e\n", sim->t, Omega_sun->x, Omega_sun->y, Omega_sun->z, mag_p, theta_p, phi_p, a1, e1, i1, n1.x, n1.y, n1.z, Om1, pom1, a2, e2, i2, n2.x, n2.y, n2.z, Om2, pom2, p_ob, pert_ob, mi, k2); // print spins and orbits
-
+      //fprintf(of, "%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e\n", sim->t, Omega_sun->x, Omega_sun->y, Omega_sun->z, mag_p, theta_p, phi_p, a1, e1, i1, n1.x, n1.y, n1.z, Om1, pom1, p_ob, k2);
       fclose(of);
     }
 
