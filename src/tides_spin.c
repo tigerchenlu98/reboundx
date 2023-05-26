@@ -204,6 +204,10 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
                 const double mj = pj->m;
                 const double mu_ij = (mi * mj) / (mi + mj);
 
+                if (mi == 0 || mj == 0){ // This needs to be added to main REBOUNDx at some point. And refined! Works for now.
+                  continue;
+                }
+
                 struct reb_vec3d tf = rebx_calculate_spin_orbit_accelerations(pi, pj, sim->G, *k2, sigma_in, Omega);
                 // Eggleton et. al 1998 spin EoM (equation 36)
                 yDot[3*Nspins] += ((dy * tf.z - dz * tf.y) * (-mu_ij / *I));
