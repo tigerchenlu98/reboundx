@@ -33,7 +33,7 @@ int main(int argc, char* argv[]){
     const double p1_e = 0.01;
     const double p1_inc = 0.01;
     reb_add_fmt(sim, "m a e inc r", p1_mass, 0.04072, p1_e, p1_inc, p1_rad); // Planet 1
-
+    
     sim->N_active = 2;
     sim->integrator = REB_INTEGRATOR_WHFAST;
     sim->dt = 1e-3;
