@@ -141,6 +141,11 @@ void rebx_register_default_params(struct rebx_extras* rebx){
     rebx_register_param(rebx, "lt_p_haty", REBX_TYPE_DOUBLE);
     rebx_register_param(rebx, "lt_p_hatz", REBX_TYPE_DOUBLE);
     rebx_register_param(rebx, "lt_c", REBX_TYPE_DOUBLE);
+
+    // TLu Disk Damping Parameters
+    rebx_register_param(rebx, "dd_Cm", REBX_TYPE_DOUBLE);
+    rebx_register_param(rebx, "dd_Ca", REBX_TYPE_DOUBLE);
+    rebx_register_param(rebx, "dd_tc", REBX_TYPE_DOUBLE);
 }
 
 void rebx_register_param(struct rebx_extras* const rebx, const char* name, enum rebx_param_type type){
@@ -341,6 +346,7 @@ struct rebx_force* rebx_load_force(struct rebx_extras* const rebx, const char* n
         force->update_accelerations = rebx_lense_thirring;
         force->force_type = REBX_FORCE_VEL;
     }
+
     else{
         char str[300];
         sprintf(str, "REBOUNDx error: Force '%s' not found in REBOUNDx library.\n", name);
@@ -433,6 +439,11 @@ struct rebx_operator* rebx_load_operator(struct rebx_extras* const rebx, const c
     else if (strcmp(name, "track_min_distance") == 0){
         operator->step_function = rebx_track_min_distance;
         operator->operator_type = REBX_OPERATOR_RECORDER;
+    }
+
+    else if (strcmp(name, "disk_damping") == 0){ // TLu Disk Damping
+        operator->step_function = rebx_disk_damping;
+        operator->operator_type = REBX_OPERATOR_UPDATER;
     }
     else{
         char str[300];
