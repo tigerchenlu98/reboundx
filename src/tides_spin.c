@@ -69,13 +69,14 @@
 #include <stdlib.h>
 #include <float.h>
 #include "reboundx.h"
+#include "rebxtools.h"
 
 // Spin distoration from rotation only
 struct reb_vec3d rebx_calculate_spin_distortion_acceleration(struct reb_particle* source, struct reb_particle* target, const double G, const double k2, const struct reb_vec3d Omega){
   struct reb_vec3d tot_force = {0};
 
-  const double ms = source->m;
-  const double mt = target->m;
+  //const double ms = source->m;
+  //const double mt = target->m;
   const double Rs = source->r;
   const double big_a = k2 * (Rs * Rs * Rs * Rs * Rs);
 
@@ -166,6 +167,8 @@ struct reb_vec3d rebx_calculate_spin_orbit_accelerations(struct reb_particle* so
     tot_force.y = (quad_prefactor * ((t1 - t2 - t4) * dy - (t3 * Omega.y)));
     tot_force.z = (quad_prefactor * ((t1 - t2 - t4) * dz - (t3 * Omega.z)));
 
+    //printf("%f %f %f\n", mt, big_a, mu_ij);
+
     if (sigma != 0.0){
       // Eggleton et. al 1998 tidal (equation 45)
       const double d_dot_vel = dx*dvx + dy*dvy + dz*dvz;
@@ -207,8 +210,9 @@ static void rebx_spin_orbit_accelerations(struct reb_simulation* const sim, stru
     const double ms = source->m;
     const double mt = target->m;
     const double mtot = ms + mt;
-
+    //printf("Accelerations: %d %d\n", ms, mt);
     struct reb_vec3d tot_force = rebx_calculate_spin_orbit_accelerations(source, target, G, k2, sigma, Omega);
+    //printf("%f %f %f\n", tot_force.x, tot_force.y, tot_force.z);
 
     target->ax -= ((ms / mtot) * tot_force.x);
     target->ay -= ((ms / mtot) * tot_force.y);
@@ -259,6 +263,29 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
           yDot[3*Nspins + 2] = 0;
 
           const struct reb_vec3d Omega = {.x=y[3*Nspins], .y=y[3*Nspins+1], .z=y[3*Nspins+2]};
+          struct reb_vec3d alignment;
+          double alignment_ts;
+
+          const struct reb_vec3d* alignment_ptr = rebx_get_param(rebx, pi->ap, "alignment");
+          const double* alignment_ts_ptr = rebx_get_param(rebx, pi->ap, "alignment_ts");
+
+          if (alignment_ptr != NULL && alignment_ts_ptr != NULL){
+            alignment = *alignment_ptr;
+            alignment_ts = *alignment_ts_ptr;
+
+            // apply aignment alignment torque
+            struct reb_vec3d omega_hat = reb_vec3d_normalize(Omega);
+            const double omega_mag = sqrt(reb_vec3d_length_squared(Omega));
+            struct reb_vec3d a_hat = reb_vec3d_normalize(alignment);
+
+            struct reb_vec3d cross1 = reb_vec3d_cross(omega_hat, a_hat);
+            struct reb_vec3d cross2 = reb_vec3d_cross(omega_hat, cross1);
+
+            yDot[3*Nspins] -= (omega_mag / alignment_ts) * cross2.x;
+            yDot[3*Nspins+1] -= (omega_mag / alignment_ts) * cross2.y;
+            yDot[3*Nspins+2] -= (omega_mag / alignment_ts) * cross2.z;
+          }
+
           for (int j=0; j<N_real; j++){
             if (i != j){
                 struct reb_particle* pj = &sim->particles[j];
@@ -291,6 +318,7 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
                 yDot[3*Nspins] += ((dy * tf.z - dz * tf.y) / (-I_specific));
                 yDot[3*Nspins + 1] += ((dz * tf.x - dx * tf.z) / (-I_specific));
                 yDot[3*Nspins + 2] += ((dx * tf.y - dy * tf.x) / (-I_specific));
+
             }
           }
           Nspins += 1;
@@ -381,6 +409,8 @@ void rebx_tides_spin(struct reb_simulation* const sim, struct rebx_force* const 
       reb_warning(sim, "Spin axes are not being evolved. Call rebx_spin_initialize_ode to evolve\n");
     }
 
+    struct reb_particle* primary = &particles[0];
+
     for (int i=0; i<N; i++){
         struct reb_particle* source = &particles[i];
         // Particle must have a k2 set, otherwise we treat this body as a point particle
@@ -408,11 +438,28 @@ void rebx_tides_spin(struct reb_simulation* const sim, struct rebx_force* const 
               // Test particle stuff
 
               if (target->m == 0){
-                struct reb_vec3d tot_force = rebx_calculate_spin_distortion_acceleration(source, target, G, *k2, *Omega);
-                //printf("This is Happening %e %e %e %e\n", target->ax, target->ay, tot_force.x, tot_force.y);
-                target->ax -= tot_force.x;
-                target->ay -= tot_force.y;
-                target->az -= tot_force.z;
+                if (i == 0){
+                  // We only feel spin distortion from the planet
+                  struct reb_vec3d tot_force = rebx_calculate_spin_distortion_acceleration(source, target, G, *k2, *Omega);
+                  target->ax -= tot_force.x;
+                  target->ay -= tot_force.y;
+                  target->az -= tot_force.z;
+
+                  // Damping for each particle
+                  /*
+                  double tau_i = 0.0;
+                  const double* const tau_i_ptr = rebx_get_param(rebx, source->ap, "tau_i");
+                  if (tau_i_ptr != NULL){
+                    tau_i = *tau_i_ptr;
+                  }
+                  if (tau_i != 0.0){
+                    struct reb_vec3d damping = rebx_calculate_damping(rebx, effect, target, source, tau_i);
+                    target->ax += damping.x;
+                    target->ay += damping.y;
+                    target->az += damping.z;
+                  }
+                  */
+                }
               }
 
               else{

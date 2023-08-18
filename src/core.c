@@ -135,6 +135,13 @@ void rebx_register_default_params(struct rebx_extras* rebx){
     rebx_register_param(rebx, "gas_df_hr", REBX_TYPE_DOUBLE);
     rebx_register_param(rebx, "gas_df_Qd", REBX_TYPE_DOUBLE);
 
+    // Damping from TLu:
+    rebx_register_param(rebx, "damping", REBX_TYPE_INT);
+    rebx_register_param(rebx, "tau_i", REBX_TYPE_DOUBLE);
+    rebx_register_param(rebx, "lr", REBX_TYPE_DOUBLE);
+    rebx_register_param(rebx, "alignment", REBX_TYPE_VEC3D);
+    rebx_register_param(rebx, "alignment_ts", REBX_TYPE_DOUBLE);
+
 }
 
 void rebx_register_param(struct rebx_extras* const rebx, const char* name, enum rebx_param_type type){
@@ -329,6 +336,10 @@ struct rebx_force* rebx_load_force(struct rebx_extras* const rebx, const char* n
     }
     else if (strcmp(name, "gas_dynamical_friction") == 0){
         force->update_accelerations = rebx_gas_dynamical_friction;
+        force->force_type = REBX_FORCE_VEL;
+    }
+    else if (strcmp(name, "laplace_damping") == 0){
+        force->update_accelerations = rebx_laplace_damping;
         force->force_type = REBX_FORCE_VEL;
     }
     else{
