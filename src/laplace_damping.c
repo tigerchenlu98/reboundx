@@ -69,7 +69,7 @@ static struct reb_vec3d rebx_calculate_laplace_damping(struct reb_simulation* co
     double hedge = 0.0;
     double invtau_mig = 0.0;
     double tau_i = INFINITY;
-    double lr = 0.0;
+    double k2 = 0.0;
     double mag_p;
     double theta_p;
     double phi_p;
@@ -78,7 +78,7 @@ static struct reb_vec3d rebx_calculate_laplace_damping(struct reb_simulation* co
     const double* const dedge_ptr = rebx_get_param(sim->extras, force->ap, "ide_position");
     const double* const hedge_ptr = rebx_get_param(sim->extras, force->ap, "ide_width");
 
-    const double* const lr_ptr = rebx_get_param(sim->extras, source->ap, "lr");
+    const double* const k2_ptr = rebx_get_param(sim->extras, source->ap, "k2");
     const double* const tau_i_ptr = rebx_get_param(sim->extras, p->ap, "tau_i");
     const struct reb_vec3d* Omega = rebx_get_param(sim->extras, source->ap, "Omega");
 
@@ -91,8 +91,8 @@ static struct reb_vec3d rebx_calculate_laplace_damping(struct reb_simulation* co
     if (tau_i_ptr != NULL){
         tau_i = *tau_i_ptr;
     }
-    if (lr_ptr != NULL){
-        lr = *lr_ptr;
+    if (k2_ptr != NULL){
+        k2 = *k2_ptr;
     }
     if (Omega != NULL){
         reb_tools_xyz_to_spherical(*Omega, &mag_p, &theta_p, &phi_p);
@@ -100,8 +100,18 @@ static struct reb_vec3d rebx_calculate_laplace_damping(struct reb_simulation* co
 
     /* Accessing the calculated semi-major axis, eccentricity and inclination for each integration step, via modify_orbits_direct where they are calculated and returned*/
     int err=0;
+    // very hard coded...
+    struct reb_particle* planet = &sim->particles[0];
+    struct reb_particle* sun = &sim->particles[1];
+    struct reb_orbit op = reb_tools_particle_to_orbit_err(sim->G, *planet, *sun, &err);
+    const double ap = op.a;
+    const double ep = op.e;
+
     struct reb_orbit o = reb_tools_particle_to_orbit_err(sim->G, *p, *source, &err);
     const double a0 = o.a;
+
+    double j2 = (mag_p * mag_p * 3. * 4.26e-5 * 3. * 4.26e-5 * 3. * 4.26e-5) / (3. * 10. * 3e-6) * 0.5;
+    double lr = pow(j2 * 3. * 4.26e-5 * 3. * 4.26e-5 * ap*ap*ap * pow((1 - ep*ep),(3./2.)) * 3e-6 / 1.0, (1./5.)); // star mass hard coded
 
     const double dvx = p->vx - source->vx;
     const double dvy = p->vy - source->vy;
