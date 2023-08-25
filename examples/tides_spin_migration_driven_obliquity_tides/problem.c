@@ -37,7 +37,7 @@ int main(int argc, char* argv[]){
 
     // add test particles
     struct reb_particle p1 = sim->particles[1];
-    double ta = 1.8 * p1_rad;
+    double ta = 1.6 * p1_rad;
     reb_add_fmt(sim, "primary a", p1, ta);
     sim->N_active = 3;
     sim->integrator = REB_INTEGRATOR_IAS15;
@@ -49,7 +49,9 @@ int main(int argc, char* argv[]){
     struct rebx_extras* rebx = rebx_attach(sim);
 
     struct rebx_force* effect = rebx_load_force(rebx, "tides_spin");
+    struct rebx_force* damping = rebx_load_force(rebx, "laplace_damping");
     rebx_add_force(rebx, effect);
+    rebx_add_force(rebx, damping);
     // Exact parameters from Millholland & Laughlin (2019)
     // Sun
     const double solar_spin_period = 20 * 2 * M_PI / 365;
@@ -91,6 +93,8 @@ int main(int argc, char* argv[]){
     rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_a", -5e6 * 2 * M_PI);
     rebx_set_param_double(rebx, &sim->particles[2].ap, "tau_a", (-5e6 * 2 * M_PI) / 1.1);
 
+    rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_i", 5e4 * 2 * M_PI);
+
     reb_move_to_com(sim);
 
     // Let's create a reb_rotation object that rotates to new axes with newz pointing along the total ang. momentum, and x along the line of
@@ -123,7 +127,7 @@ void heartbeat(struct reb_simulation* sim){
     struct rebx_extras* const rebx = sim->extras;
     //FILE* of_orb = fopen("output_orbits.txt", "a");
     //FILE* of_spins = fopen("output_spins.txt", "a");
-    FILE* of_test = fopen("output_test_nd_2.txt", "a");
+    FILE* of_test = fopen("output_test_d_1.txt", "a");
     //if (of_orb == NULL || of_spins == NULL){
     //    reb_error(sim, "Can not open file.");
     //    return;

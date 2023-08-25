@@ -62,7 +62,7 @@
 #include "reboundx.h"
 #include "rebxtools.h"
 
-static struct reb_vec3d rebx_calculate_laplace_damping(struct reb_simulation* const sim, struct reb_particle* p, struct reb_particle* planet, struct reb_particle* primary, double tau_i, double k2, double mag_p, double theta_p, double phi_p){
+static struct reb_vec3d rebx_calculate_laplace_damping(struct reb_simulation* const sim, struct reb_particle* p, struct reb_particle* planet, struct reb_particle* primary, double tau_i, double k2, double mag_p, double theta_p, double phi_p, struct reb_rotation invrot){
 
     //struct reb_orbit op = reb_tools_particle_to_orbit_err(sim->G, *planet, *sun, &err);
     // Planet orbit
@@ -109,11 +109,11 @@ static struct reb_vec3d rebx_calculate_laplace_damping(struct reb_simulation* co
     const double j2 = (mag_p * mag_p * planet->r * planet->r * planet->r) / (3. * planet->m) * k2;
     const double lr = pow(j2 * planet->r * planet->r * ap*ap*ap * pow((1 - ep*ep),(3./2.)) * planet->m / primary->m, (1./5.)); // star mass hard coded
 
-    const double le_theta = theta_p - 0.5 * atan2(sin(2.*theta_p),cos(2.*theta_p) + (lr/a0)*(lr/a0)*(lr/a0)*(lr/a0)*(lr/a0));
-    printf("%f %f\n", le_theta*M_PI/180., (lr/a0)*(lr/a0)*(lr/a0)*(lr/a0)*(lr/a0));
-    struct reb_vec3d beta_vec = reb_tools_spherical_to_xyz(1.,le_theta, phi_p);
+    const double le_theta = theta_p - 0.5 * atan2(sin(2.*theta_p),cos(2.*theta_p) + (lr/a0)*(lr/a0)*(lr/a0)*(lr/a0)*(lr/a0)); // In the planet frame
+    struct reb_vec3d beta_vec = reb_tools_spherical_to_xyz(1.,le_theta, phi_p);// In the planet frame
+    reb_vec3d_irotate(&beta_vec, invrot); // rotates into xya frame.
     const double v_dot_beta = dvz * beta_vec.x + dvy * beta_vec.y + dvz * beta_vec.z;
-    const double G = sim->G;
+    //const double G = sim->G;
     struct reb_vec3d a = {0};
     if (tau_i < INFINITY){
         a.x = -2. * v_dot_beta * beta_vec.x / tau_i;
@@ -131,6 +131,8 @@ void rebx_laplace_damping(struct reb_simulation* const sim, struct rebx_force* c
     double mag_p = 0.0;
     double theta_p;
     double phi_p;
+    int err=0;
+    struct reb_rotation invrot;
 
     // For now just hard code in which planet we care about
     struct reb_particle* star = &particles[0];
@@ -146,18 +148,24 @@ void rebx_laplace_damping(struct reb_simulation* const sim, struct rebx_force* c
         k2 = *k2_ptr;
     }
     if (Omega_ptr != NULL){
-        reb_tools_xyz_to_spherical(*Omega_ptr, &mag_p, &theta_p, &phi_p);
+        struct reb_vec3d Omega = *Omega_ptr;
+        struct reb_orbit o = reb_tools_particle_to_orbit_err(sim->G, *planet, *star, &err);
+        struct reb_vec3d h = o.hvec;
+        struct reb_vec3d xyz = {0., 0., 1.};
+
+        struct reb_rotation rot = reb_rotation_init_from_to(xyz, h); // rotates from xyz to planet frame
+        invrot = reb_rotation_inverse(rot); // rotates from planet frame to xyz
+        struct reb_vec3d Omega_rot = reb_vec3d_rotate(Omega, rot);
+        reb_tools_xyz_to_spherical(Omega_rot, &mag_p, &theta_p, &phi_p); // In the frame of the planet, this motivates theta_p
     }
 
     // This is hard coded assuming all particles orbit the first planet
     for (int i = N_active; i < N; i++){
       struct reb_particle* test = &particles[i];
-      printf("%d ", i);
-      struct reb_vec3d tot_force = rebx_calculate_laplace_damping(sim, test, planet, star, tau_i, k2, mag_p, theta_p, phi_p);
+      struct reb_vec3d tot_force = rebx_calculate_laplace_damping(sim, test, planet, star, tau_i, k2, mag_p, theta_p, phi_p, invrot);
       test->ax += tot_force.x;
       test->ay += tot_force.y;
       test->az += tot_force.z;
     }
-    exit(1);
 
 }
