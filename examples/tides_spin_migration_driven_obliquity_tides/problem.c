@@ -18,7 +18,7 @@
 #include "tides_spin.c"
 
 void heartbeat(struct reb_simulation* sim);
-double tmax = 100 * 2 * M_PI; // set short to run quickly. Set to 4e6 * 2 * M_PI in paper
+double tmax = 4e6 * 2 * M_PI; // set short to run quickly. Set to 4e6 * 2 * M_PI in paper
 
 int main(int argc, char* argv[]){
     struct reb_simulation* sim = reb_create_simulation();
@@ -34,9 +34,14 @@ int main(int argc, char* argv[]){
     const double p2_mass = 5. * 3.0e-6;
     const double p2_rad = 2.5 * 4.26e-5;
     reb_add_fmt(sim, "m a e r inc Omega pomega M", p2_mass, 0.23290608, 0.01, p2_rad, -0.431 * (M_PI / 180.), 0.0 * (M_PI / 180.), 0.0 * (M_PI / 180.), 0.0 * (M_PI / 180.)); // Planet 2
+
+    // add test particles
+    struct reb_particle p1 = sim->particles[1];
+    double ta = 2. * p1_rad;
+    reb_add_fmt(sim, "primary a", p1, ta);
     sim->N_active = 3;
-    sim->integrator = REB_INTEGRATOR_WHFAST;
-    sim->dt = 1e-3;
+    sim->integrator = REB_INTEGRATOR_IAS15;
+    // sim->dt = 1e-3;
     sim->heartbeat = heartbeat;
 
     // Add REBOUNDx Additional effects
@@ -99,12 +104,13 @@ int main(int argc, char* argv[]){
     // Run simulation
     system("rm -v output_orbits.txt"); // remove previous output files
     system("rm -v output_spins.txt");
-    
-    reb_integrate(sim, tmax/2);
+    system("rm -v output_test_1.txt");
 
-    printf("Migration Switching Off\n");
-    rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_a", INFINITY);
-    rebx_set_param_double(rebx, &sim->particles[2].ap, "tau_a", INFINITY);
+    //reb_integrate(sim, tmax/2);
+
+    //printf("Migration Switching Off\n");
+    //rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_a", INFINITY);
+    //rebx_set_param_double(rebx, &sim->particles[2].ap, "tau_a", INFINITY);
 
     reb_integrate(sim, tmax);
 
@@ -117,6 +123,7 @@ void heartbeat(struct reb_simulation* sim){
     struct rebx_extras* const rebx = sim->extras;
     FILE* of_orb = fopen("output_orbits.txt", "a");
     FILE* of_spins = fopen("output_spins.txt", "a");
+    FILE* of_test = fopen("output_test_1.txt", "a");
     if (of_orb == NULL || of_spins == NULL){
         reb_error(sim, "Can not open file.");
         return;
@@ -125,6 +132,7 @@ void heartbeat(struct reb_simulation* sim){
     struct reb_particle* sun = &sim->particles[0];
     struct reb_particle* p1 = &sim->particles[1];
     struct reb_particle* p2 = &sim->particles[2];
+    struct reb_particle* test = &sim->particles[3];
 
     // Orbit information
     struct reb_orbit o1 = reb_tools_particle_to_orbit(sim->G, *p1, *sun);
@@ -142,6 +150,14 @@ void heartbeat(struct reb_simulation* sim){
     double Om2 = o2.Omega;
     double pom2 = o2.pomega;
     struct reb_vec3d norm2 = o2.hvec;
+
+    struct reb_orbit ot = reb_tools_particle_to_orbit(sim->G, *test, *p1);
+    double at = ot.a;
+    double et = ot.e;
+    double it = ot.inc;
+    //double Omt = ot.Omega;
+    //double pomt = ot.pomega;
+    struct reb_vec3d normt = ot.hvec;
 
     // Spin vectors - all initially in invariant plane
     struct reb_vec3d* Omega_sun = rebx_get_param(rebx, sun->ap, "Omega");
@@ -173,9 +189,11 @@ void heartbeat(struct reb_simulation* sim){
     fclose(of_orb);
     fprintf(of_spins, "%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e\n", sim->t, Omega_sun->x, Omega_sun->y, Omega_sun->z, mag1, theta1, phi1, mag2, theta2, phi2, Omega_p1->x, Omega_p1->y, Omega_p1->z, Omega_p2->x, Omega_p2->y, Omega_p2->z);
     fclose(of_spins);
+    fprintf(of_test, "%f,%f,%f,%f,%f,%f,%f\n", sim->t, at, et, it, normt.x, normt.y, normt.z);
+    fclose(of_test);
   }
 
-  if(reb_output_check(sim, 100.*M_PI)){        // outputs to the screen
-      reb_output_timing(sim, tmax);
-  }
+  //if(reb_output_check(sim, 100.*M_PI)){        // outputs to the screen
+  //    reb_output_timing(sim, tmax);
+  //}
 }
