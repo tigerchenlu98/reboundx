@@ -35,7 +35,7 @@ int main(int argc, char* argv[]){
     // Initial conditions
     // Planet
     struct reb_particle star = {0};
-    star.m  = 10. * 3e-6;
+    star.m  = 1.0;
     star.r = 1.0 * 0.00465;
     reb_add(sim, star);
 
@@ -137,8 +137,8 @@ int main(int argc, char* argv[]){
 
     //struct reb_orbit orb = reb_tools_particle_to_orbit(sim->G, sim->particles[1], sim->particles[0]);
     tmax = 1e4 * 2 * M_PI;
-    //reb_integrate(sim, tmax);
-    reb_step(sim);
+    reb_integrate(sim, tmax);
+    //reb_step(sim);
     rebx_free(rebx);
     reb_free_simulation(sim);
 }
