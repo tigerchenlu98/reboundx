@@ -53,8 +53,8 @@ int main(int argc, char* argv[]){
 
 
     struct reb_particle planet = sim->particles[1];
-    //double testa = 1.6 * pr;
-    //reb_add_fmt(sim, "primary a", planet, testa);
+    double testa = 1.6 * pr;
+    reb_add_fmt(sim, "primary a", planet, testa);
 
     struct reb_orbit o1 = reb_tools_particle_to_orbit(sim->G, sim->particles[1], sim->particles[0]);
     struct reb_orbit o2 = reb_tools_particle_to_orbit(sim->G, sim->particles[2], sim->particles[0]);
@@ -125,10 +125,10 @@ int main(int argc, char* argv[]){
     rebx_spin_initialize_ode(rebx, effect);
 
 
-    system("rm -v test.txt");        // delete previous output file
+    //system("rm -v test.txt");        // delete previous output file
     //system("rm -v evol.txt");
-    FILE* of = fopen("test.txt", "w");
-    fprintf(of, "t,a1,a2,Omega1,Omega2,mag_p1,theta_p1,mag_p2,theta_p2\n");
+    FILE* of = fopen("nd_1.txt", "w");
+    fprintf(of, "t,nx,ny,nz,theta_t\n");
     //for (int i = sim->N_active; i < sim->N; i++){
     //  fprintf(of, ",tx%d,ty%d,tz%d,a%d,e%d,hx%d,hy%d,hz%d",i-1,i-1,i-1,i-1,i-1,i-1,i-1,i-1);
     //}
@@ -152,7 +152,7 @@ void heartbeat(struct reb_simulation* sim){
     // Output spin and orbital information to file
     if(reb_output_check(sim, 10. * M_PI)){        // outputs every 10 REBOUND years
       struct rebx_extras* const rebx = sim->extras;
-      FILE* of = fopen("test.txt", "a");
+      FILE* of = fopen("nd_1.txt", "a");
       if (of==NULL){
           reb_error(sim, "Can not open file.");
           return;
@@ -160,25 +160,25 @@ void heartbeat(struct reb_simulation* sim){
 
       struct reb_particle* sun = &sim->particles[0];
       struct reb_particle* p1 = &sim->particles[1];
-      struct reb_particle* p2 = &sim->particles[2];
-      //struct reb_particle* t = &sim->particles[3];
+      //struct reb_particle* p2 = &sim->particles[2];
+      struct reb_particle* t = &sim->particles[3];
 
       struct reb_orbit o1 = reb_tools_particle_to_orbit(sim->G, *p1, *sun);
-      struct reb_vec3d* Omega_p1 = rebx_get_param(rebx, p1->ap, "Omega");
-      struct reb_orbit o2 = reb_tools_particle_to_orbit(sim->G, *p2, *sun);
-      struct reb_vec3d* Omega_p2 = rebx_get_param(rebx, p2->ap, "Omega");
-      //struct reb_orbit ot = reb_tools_particle_to_orbit(sim->G, *t, *p1);
+      //struct reb_vec3d* Omega_p1 = rebx_get_param(rebx, p1->ap, "Omega");
+      //struct reb_orbit o2 = reb_tools_particle_to_orbit(sim->G, *p2, *sun);
+      //struct reb_vec3d* Omega_p2 = rebx_get_param(rebx, p2->ap, "Omega");
+      struct reb_orbit ot = reb_tools_particle_to_orbit(sim->G, *t, *p1);
 
-      struct reb_vec3d line_of_nodes_1 = reb_vec3d_cross((struct reb_vec3d){.z =1}, o1.hvec);
-      struct reb_rotation rot1 = reb_rotation_init_to_new_axes(o1.hvec, line_of_nodes_1); // Arguments to this function are the new z and x axes
-      struct reb_vec3d srot1 = reb_vec3d_rotate(*Omega_p1, rot1); // spin vector in the planet's frame
+      struct reb_vec3d line_of_nodes = reb_vec3d_cross((struct reb_vec3d){.z =1}, o1.hvec);
+      struct reb_rotation rot = reb_rotation_init_to_new_axes(o1.hvec, line_of_nodes); // Arguments to this function are the new z and x axes
+      struct reb_vec3d srot = reb_vec3d_rotate(ot.hvec, rot); // spin vector in the planet's frame
 
       // Interpret the spin axis in the more natural spherical coordinates
-      double mag_p1;
-      double theta_p1;
-      double phi_p1;
-      reb_tools_xyz_to_spherical(srot1, &mag_p1, &theta_p1, &phi_p1);
-
+      double mag_t;
+      double theta_t;
+      double phi_t;
+      reb_tools_xyz_to_spherical(srot, &mag_t, &theta_t, &phi_t);
+/*
       struct reb_vec3d line_of_nodes_2 = reb_vec3d_cross((struct reb_vec3d){.z =1}, o2.hvec);
       struct reb_rotation rot2 = reb_rotation_init_to_new_axes(o2.hvec, line_of_nodes_2); // Arguments to this function are the new z and x axes
       struct reb_vec3d srot2 = reb_vec3d_rotate(*Omega_p2, rot2); // spin vector in the planet's frame
@@ -188,8 +188,9 @@ void heartbeat(struct reb_simulation* sim){
       double theta_p2;
       double phi_p2;
       reb_tools_xyz_to_spherical(srot2, &mag_p2, &theta_p2, &phi_p2);
+      */
 
-      fprintf(of, "%f,%f,%f,%f,%f,%f,%f,%f,%f\n",sim->t,o1.a,o2.a,o1.Omega,o2.Omega,mag_p1,theta_p1,mag_p2,theta_p2);
+      fprintf(of, "%f,%f,%f,%f,%f\n",sim->t,ot.hvec.x,ot.hvec.y,ot.hvec.z,theta_t);
       //for (int i = sim->N_active; i < sim->N; i++){
       //    struct reb_particle* test = &sim->particles[i];
       //    struct reb_orbit o = reb_tools_particle_to_orbit(sim->G, *test, *p);
