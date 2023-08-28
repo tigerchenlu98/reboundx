@@ -107,7 +107,7 @@ int main(int argc, char* argv[]){
     rebx_set_param_double(rebx, &sim->particles[2].ap, "tau", 1/(2. * pQ * o2.n));
 
     // Damping
-    //rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_i", 1e3 * 2 * M_PI);
+    rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_i", 1e6 * 2 * M_PI);
 
 
     reb_move_to_com(sim);
@@ -127,7 +127,7 @@ int main(int argc, char* argv[]){
 
     //system("rm -v test.txt");        // delete previous output file
     //system("rm -v evol.txt");
-    FILE* of = fopen("nd_1.txt", "w");
+    FILE* of = fopen("fd_1.txt", "w");
     fprintf(of, "t,nx,ny,nz,theta_t\n");
     //for (int i = sim->N_active; i < sim->N; i++){
     //  fprintf(of, ",tx%d,ty%d,tz%d,a%d,e%d,hx%d,hy%d,hz%d",i-1,i-1,i-1,i-1,i-1,i-1,i-1,i-1);
@@ -152,7 +152,7 @@ void heartbeat(struct reb_simulation* sim){
     // Output spin and orbital information to file
     if(reb_output_check(sim, 10. * M_PI)){        // outputs every 10 REBOUND years
       struct rebx_extras* const rebx = sim->extras;
-      FILE* of = fopen("nd_1.txt", "a");
+      FILE* of = fopen("fd_1.txt", "a");
       if (of==NULL){
           reb_error(sim, "Can not open file.");
           return;
