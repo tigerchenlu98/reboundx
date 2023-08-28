@@ -161,13 +161,13 @@ void heartbeat(struct reb_simulation* sim){
       struct reb_particle* sun = &sim->particles[0];
       struct reb_particle* p1 = &sim->particles[1];
       struct reb_particle* p2 = &sim->particles[2];
-      struct reb_particle* t = &sim->particles[3];
+      //struct reb_particle* t = &sim->particles[3];
 
       struct reb_orbit o1 = reb_tools_particle_to_orbit(sim->G, *p1, *sun);
       struct reb_vec3d* Omega_p1 = rebx_get_param(rebx, p1->ap, "Omega");
       struct reb_orbit o2 = reb_tools_particle_to_orbit(sim->G, *p2, *sun);
       struct reb_vec3d* Omega_p2 = rebx_get_param(rebx, p2->ap, "Omega");
-      struct reb_orbit ot = reb_tools_particle_to_orbit(sim->G, *t, *p1);
+      //struct reb_orbit ot = reb_tools_particle_to_orbit(sim->G, *t, *p1);
 
       struct reb_vec3d line_of_nodes_1 = reb_vec3d_cross((struct reb_vec3d){.z =1}, o1.hvec);
       struct reb_rotation rot1 = reb_rotation_init_to_new_axes(o1.hvec, line_of_nodes_1); // Arguments to this function are the new z and x axes
@@ -189,7 +189,7 @@ void heartbeat(struct reb_simulation* sim){
       double phi_p2;
       reb_tools_xyz_to_spherical(srot2, &mag_p2, &theta_p2, &phi_p2);
 
-      fprintf(of, "%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",sim->t,o1.a,o2.a,o1.Omega,o2.Omega,mag_p1,theta_p1,mag_p2,theta_p2,ot.x,ot.y,ot.z);
+      fprintf(of, "%f,%f,%f,%f,%f,%f,%f,%f,%f\n",sim->t,o1.a,o2.a,o1.Omega,o2.Omega,mag_p1,theta_p1,mag_p2,theta_p2);
       //for (int i = sim->N_active; i < sim->N; i++){
       //    struct reb_particle* test = &sim->particles[i];
       //    struct reb_orbit o = reb_tools_particle_to_orbit(sim->G, *test, *p);
