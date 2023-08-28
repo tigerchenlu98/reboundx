@@ -66,7 +66,9 @@ int main(int argc, char* argv[]){
     // Add REBOUNDx effects
     struct rebx_extras* rebx = rebx_attach(sim);
     struct rebx_force* effect = rebx_load_force(rebx, "tides_spin");
+    struct rebx_force* damping = rebx_load_force(rebx, "laplace_damping");
     rebx_add_force(rebx, effect);
+    rebx_add_force(rebx, damping);
 
     struct rebx_force* mof = rebx_load_force(rebx, "modify_orbits_forces");
     rebx_add_force(rebx, mof);
