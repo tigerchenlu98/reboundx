@@ -263,12 +263,12 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
           yDot[3*Nspins + 2] = 0;
 
           const struct reb_vec3d Omega = {.x=y[3*Nspins], .y=y[3*Nspins+1], .z=y[3*Nspins+2]};
-          struct reb_vec3d alignment;
-          double alignment_ts;
+          //struct reb_vec3d alignment;
+          //double alignment_ts;
 
-          const struct reb_vec3d* alignment_ptr = rebx_get_param(rebx, pi->ap, "alignment");
-          const double* alignment_ts_ptr = rebx_get_param(rebx, pi->ap, "alignment_ts");
-
+          //const struct reb_vec3d* alignment_ptr = rebx_get_param(rebx, pi->ap, "alignment");
+          //const double* alignment_ts_ptr = rebx_get_param(rebx, pi->ap, "alignment_ts");
+          /*
           if (alignment_ptr != NULL && alignment_ts_ptr != NULL){
             alignment = *alignment_ptr;
             alignment_ts = *alignment_ts_ptr;
@@ -285,6 +285,7 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
             yDot[3*Nspins+1] -= (omega_mag / alignment_ts) * cross2.y;
             yDot[3*Nspins+2] -= (omega_mag / alignment_ts) * cross2.z;
           }
+          */
 
           for (int j=0; j<N_real; j++){
             if (i != j){

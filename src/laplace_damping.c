@@ -111,7 +111,7 @@ static struct reb_vec3d rebx_calculate_laplace_damping(struct reb_simulation* co
 
     const double le_theta = theta_p - 0.5 * atan2(sin(2.*theta_p),cos(2.*theta_p) + (lr/a0)*(lr/a0)*(lr/a0)*(lr/a0)*(lr/a0)); // In the planet frame
     struct reb_vec3d beta_vec = reb_tools_spherical_to_xyz(1.,le_theta, phi_p);// In the planet frame
-    reb_vec3d_irotate(&beta_vec, invrot); // rotates into xya frame.
+    reb_vec3d_irotate(&beta_vec, invrot); // rotates into xyz frame.
     const double v_dot_beta = dvz * beta_vec.x + dvy * beta_vec.y + dvz * beta_vec.z;
     //const double G = sim->G;
     struct reb_vec3d a = {0};
@@ -150,13 +150,16 @@ void rebx_laplace_damping(struct reb_simulation* const sim, struct rebx_force* c
     if (Omega_ptr != NULL){
         struct reb_vec3d Omega = *Omega_ptr;
         struct reb_orbit o = reb_tools_particle_to_orbit_err(sim->G, *planet, *star, &err);
-        struct reb_vec3d h = o.hvec;
-        struct reb_vec3d xyz = {0., 0., 1.};
 
-        struct reb_rotation rot = reb_rotation_init_from_to(xyz, h); // rotates from xyz to planet frame
-        invrot = reb_rotation_inverse(rot); // rotates from planet frame to xyz
+        struct reb_vec3d line_of_nodes = reb_vec3d_cross((struct reb_vec3d){.z =1}, o.hvec);
+        struct reb_rotation rot = reb_rotation_init_to_new_axes(o.hvec, line_of_nodes); // Invariant plane to planet
+        if (isnan(rot.r)) {
+          rot = reb_rotation_identity();
+        }
         struct reb_vec3d Omega_rot = reb_vec3d_rotate(Omega, rot);
-        reb_tools_xyz_to_spherical(Omega_rot, &mag_p, &theta_p, &phi_p); // In the frame of the planet, this motivates theta_p
+        reb_tools_xyz_to_spherical(Omega_rot, &mag_p, &theta_p, &phi_p); // In the frame of the planet, this motivates theta_p. Need this for calculating beta_test
+
+        invrot = reb_rotation_inverse(rot);
     }
 
     // This is hard coded assuming all particles orbit the first planet
