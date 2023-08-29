@@ -25,7 +25,7 @@ int main(int argc, char* argv[]){
     struct reb_simulation* sim = reb_create_simulation();
     // Initial conditions
     // Setup constants
-    sim->integrator         = REB_INTEGRATOR_IAS15; // IAS15 is used for its adaptive timestep:
+    sim->integrator         = REB_INTEGRATOR_BS; // IAS15 is used for its adaptive timestep:
                                                    // in a Kozai cycle the planet experiences close encounters during the high-eccentricity epochs.
                                                    // A fixed-time integrator (for example, WHFast) would need to apply the worst-case timestep to the whole simulation
     sim->heartbeat          = heartbeat;
@@ -52,8 +52,8 @@ int main(int argc, char* argv[]){
 
 
 
-    struct reb_particle planet = sim->particles[2];
-    double testa = 10. * pr;
+    struct reb_particle planet = sim->particles[1];
+    double testa = 1.6 * pr;
     reb_add_fmt(sim, "primary a", planet, testa);
 
     struct reb_orbit o1 = reb_tools_particle_to_orbit(sim->G, sim->particles[1], sim->particles[0]);
@@ -127,9 +127,9 @@ int main(int argc, char* argv[]){
     rebx_spin_initialize_ode(rebx, effect);
 
 
-    system("rm -v 828_nd1.txt");        // delete previous output file
+    system("rm -v 829_nd1.txt");        // delete previous output file
     //system("rm -v evol.txt");
-    FILE* of = fopen("828_nd1.txt", "w");
+    FILE* of = fopen("829_nd1.txt", "w");
     fprintf(of, "t,nx,ny,nz,at,theta_t\n");
     //fprintf(of, "t,a1,a2,Omega1,Omega2,mag_p1,theta_p1,mag_p2,theta_p2\n");
     //for (int i = sim->N_active; i < sim->N; i++){
@@ -153,24 +153,24 @@ int main(int argc, char* argv[]){
 
 void heartbeat(struct reb_simulation* sim){
     // Output spin and orbital information to file
-    if(reb_output_check(sim, 10. * M_PI)){        // outputs every 10 REBOUND years
+    if(reb_output_check(sim, 100. * M_PI)){        // outputs every 10 REBOUND years
       struct rebx_extras* const rebx = sim->extras;
-      FILE* of = fopen("828_nd1.txt", "a");
+      FILE* of = fopen("829_nd1.txt", "a");
       if (of==NULL){
           reb_error(sim, "Can not open file.");
           return;
       }
 
       struct reb_particle* sun = &sim->particles[0];
-      //struct reb_particle* p1 = &sim->particles[1];
-      struct reb_particle* p2 = &sim->particles[2];
+      struct reb_particle* p1 = &sim->particles[1];
+      //struct reb_particle* p2 = &sim->particles[2];
       struct reb_particle* t = &sim->particles[3];
 
-      //struct reb_orbit o1 = reb_tools_particle_to_orbit(sim->G, *p1, *sun);
+      struct reb_orbit o1 = reb_tools_particle_to_orbit(sim->G, *p1, *sun);
       //struct reb_vec3d* Omega_p1 = rebx_get_param(rebx, p1->ap, "Omega");
-      struct reb_orbit o2 = reb_tools_particle_to_orbit(sim->G, *p2, *sun);
+      //struct reb_orbit o2 = reb_tools_particle_to_orbit(sim->G, *p2, *sun);
       //struct reb_vec3d* Omega_p2 = rebx_get_param(rebx, p2->ap, "Omega");
-      struct reb_orbit ot = reb_tools_particle_to_orbit(sim->G, *t, *p2);
+      struct reb_orbit ot = reb_tools_particle_to_orbit(sim->G, *t, *p1);
 /*
       struct reb_vec3d line_of_nodes_1 = reb_vec3d_cross((struct reb_vec3d){.z =1}, o1.hvec);
       struct reb_rotation rot1 = reb_rotation_init_to_new_axes(o1.hvec, line_of_nodes_1); // Arguments to this function are the new z and x axes
@@ -182,8 +182,8 @@ void heartbeat(struct reb_simulation* sim){
       double phi_p1;
       reb_tools_xyz_to_spherical(srot1, &mag_p1, &theta_p1, &phi_p1);
 */
-      struct reb_vec3d line_of_nodes = reb_vec3d_cross((struct reb_vec3d){.z =1}, o2.hvec);
-      struct reb_rotation rot = reb_rotation_init_to_new_axes(o2.hvec, line_of_nodes); // Arguments to this function are the new z and x axes
+      struct reb_vec3d line_of_nodes = reb_vec3d_cross((struct reb_vec3d){.z =1}, o1.hvec);
+      struct reb_rotation rot = reb_rotation_init_to_new_axes(o1.hvec, line_of_nodes); // Arguments to this function are the new z and x axes
       struct reb_vec3d srot = reb_vec3d_rotate(ot.hvec, rot); // spin vector in the planet's frame
 
       // Interpret the spin axis in the more natural spherical coordinates
@@ -222,7 +222,7 @@ void heartbeat(struct reb_simulation* sim){
       */
     }
 
-    if(reb_output_check(sim, 0.1*M_PI)){        // outputs to the screen
-        reb_output_timing(sim, 3*tmax);
-    }
+    //if(reb_output_check(sim, 0.1*M_PI)){        // outputs to the screen
+    //    reb_output_timing(sim, 3*tmax);
+    //}
 }
