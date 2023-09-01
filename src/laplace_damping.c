@@ -136,7 +136,7 @@ void rebx_laplace_damping(struct reb_simulation* const sim, struct rebx_force* c
 
     // For now just hard code in which planet we care about
     struct reb_particle* star = &particles[0];
-    struct reb_particle* planet = &particles[1];
+    struct reb_particle* planet = &particles[2];
     const double* const k2_ptr = rebx_get_param(sim->extras, planet->ap, "k2");
     const double* const tau_i_ptr = rebx_get_param(sim->extras, planet->ap, "tau_i");
     const struct reb_vec3d* const Omega_ptr = rebx_get_param(sim->extras, planet->ap, "Omega");
@@ -169,6 +169,7 @@ void rebx_laplace_damping(struct reb_simulation* const sim, struct rebx_force* c
       test->ax += tot_force.x;
       test->ay += tot_force.y;
       test->az += tot_force.z;
+      //printf("Laplace Damping happening\n");
     }
 
 }

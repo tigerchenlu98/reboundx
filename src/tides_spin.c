@@ -439,7 +439,7 @@ void rebx_tides_spin(struct reb_simulation* const sim, struct rebx_force* const 
               // Test particle stuff
 
               if (target->m == 0){
-                if (i == 1){
+                if (i == 2){
                   // We only feel spin distortion from the planet
                   struct reb_vec3d tot_force = rebx_calculate_spin_distortion_acceleration(source, target, G, *k2, *Omega);
                   target->ax -= tot_force.x;
