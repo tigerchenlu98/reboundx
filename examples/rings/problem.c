@@ -120,7 +120,7 @@ int main(int argc, char* argv[]){
     rebx_set_param_double(rebx, &sim->particles[2].ap, "tau", 1/(2. * pQ * o2.n));
 
     // Damping
-    rebx_set_param_double(rebx, &sim->particles[2].ap, "tau_i", 1e4 * 2 * M_PI);
+    rebx_set_param_double(rebx, &sim->particles[2].ap, "tau_i", 1e6 * 2 * M_PI);
 
 
     reb_move_to_com(sim);
