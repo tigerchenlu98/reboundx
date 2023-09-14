@@ -12,6 +12,7 @@
  */
  #include <stdio.h>
  #include <stdlib.h>
+ #include <string.h>
  #include <unistd.h>
  #include <math.h>
  #include "rebound.h"
@@ -101,6 +102,9 @@ void derivatives(struct reb_ode* const ode, double* const yDot, const double* co
     //exit(1);
 }
 
+char title[100] = "831_fd_";
+double semis[] = {1.6,1.8,2.0,2.2,2.4,2.6,2.8,3.0,3.2,3.4,3.6,3.8,4.0,4.2,4.4,4.6,4.8,5.0,5.2,5.4,5.6,5.8,6.0,6.2,6.4,6.6,6.8,7.0,7.2,7.4,7.6,7.8,8.0};
+
 int main(int argc, char* argv[]){
     struct reb_simulation* sim = reb_create_simulation();
     // Initial conditions
@@ -110,6 +114,13 @@ int main(int argc, char* argv[]){
                                                    // A fixed-time integrator (for example, WHFast) would need to apply the worst-case timestep to the whole simulation
     sim->heartbeat          = heartbeat;
     sim->N_active = 2;
+
+    int index = 0;
+    if (argc == 2){
+       strcat(title, argv[1]);
+       index = atoi(argv[1]);
+    }
+    double val = semis[index];
 
     // Initial conditions
     // Sun
