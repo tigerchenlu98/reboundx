@@ -84,6 +84,7 @@ void derivatives(struct reb_ode* const ode, double* const yDot, const double* co
 
       // simple alignment torque
       // Align towards Laplace Equilibrium in planet frame
+      /*
       const double le_theta = theta_p - 0.5 * atan2(sin(2.*theta_p),cos(2.*theta_p) + (lr/d)*(lr/d)*(lr/d)*(lr/d)*(lr/d)); // In the planet frame
       struct reb_vec3d beta_vec = {};
       beta_vec.z = 1.;
@@ -93,7 +94,8 @@ void derivatives(struct reb_ode* const ode, double* const yDot, const double* co
 
       struct reb_vec3d beta_cross_l = reb_vec3d_cross(beta_vec, l_hat);
       struct reb_vec3d l_cross_t1 = reb_vec3d_cross(l_hat, beta_cross_l);
-      struct reb_vec3d talign = reb_vec3d_mul(l_cross_t1, 1.);//inv_alignment_ts);
+      */
+      struct reb_vec3d talign = {};//reb_vec3d_mul(l_cross_t1, 1.);//inv_alignment_ts);
 
       // DiffEq
       const double inv_prefactor = 1. / (d * d * sqrt(ode->r->G * mp / (d * d * d)));

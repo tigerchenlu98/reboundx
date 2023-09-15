@@ -22,7 +22,7 @@ double factor = 5.;
 double tmax = 1e6; // set short to run quickly. Set to 4e6 * 2 * M_PI in paper
 
 int Ntest = 12;
-double inv_alignment_ts = 1./(1e6 * M_PI * 2.);
+//double inv_alignment_ts = 1./(1e6 * M_PI * 2.);
 
 void derivatives(struct reb_ode* const ode, double* const yDot, const double* const y, const double t){
     // From Zanazzi & Lai 2017
@@ -83,6 +83,7 @@ void derivatives(struct reb_ode* const ode, double* const yDot, const double* co
 
       // simple alignment torque
       // Align towards Laplace Equilibrium in planet frame
+      /*
       const double le_theta = theta_p - 0.5 * atan2(sin(2.*theta_p),cos(2.*theta_p) + (lr/d)*(lr/d)*(lr/d)*(lr/d)*(lr/d)); // In the planet frame
       struct reb_vec3d beta_vec = {};
       beta_vec.z = 1.;
@@ -92,7 +93,8 @@ void derivatives(struct reb_ode* const ode, double* const yDot, const double* co
 
       struct reb_vec3d beta_cross_l = reb_vec3d_cross(beta_vec, l_hat);
       struct reb_vec3d l_cross_t1 = reb_vec3d_cross(l_hat, beta_cross_l);
-      struct reb_vec3d talign = reb_vec3d_mul(l_cross_t1, 1.);//inv_alignment_ts);
+      */
+      struct reb_vec3d talign = {};//reb_vec3d_mul(l_cross_t1, 1.);//inv_alignment_ts);
 
       // DiffEq
       const double inv_prefactor = 1. / (d * d * sqrt(ode->r->G * mp / (d * d * d)));
@@ -134,7 +136,7 @@ int main(int argc, char* argv[]){
       double ta = (1.5 + (double)i * 0.5) * pr;
       reb_add_fmt(sim, "primary a", planet, ta);
 
-      struct reb_orbit o = reb_tools_particle_to_orbit(sim->G, sim->particles[2], sim->particles[1]);
+      struct reb_orbit o = reb_tools_particle_to_orbit(sim->G, sim->particles[3], sim->particles[1]);
       struct reb_vec3d l = o.hvec;
       struct reb_vec3d l_hat = reb_vec3d_normalize(l);
 
@@ -212,7 +214,7 @@ int main(int argc, char* argv[]){
     //system("rm -v output_orbits.txt"); // remove previous output files
     //system("rm -v output_spins.txt");
     //system("rm -v output_tp.txt");
-
+/*
     FILE* of_orb = fopen("output_orbits.txt", "a");
     fprintf(of_orb,"t,a1,Om1,a2,Om2\n");
     fclose(of_orb);
@@ -220,8 +222,9 @@ int main(int argc, char* argv[]){
     FILE* of_spins = fopen("output_spins.txt", "a");
     fprintf(of_spins,"t,mag1,theta1,mag2,theta2\n");
     fclose(of_spins);
+    */
 
-    FILE* of = fopen("output_tp.txt", "w");
+    FILE* of = fopen("output_tp_slow.txt", "w");
     fprintf(of, "t");
     for (int i = 1; i < Ntest+1; i++){
       fprintf(of, ",nx%d,ny%d,nz%d,a%d,theta%d,phi%d",i,i,i,i,i,i);
@@ -249,9 +252,9 @@ int main(int argc, char* argv[]){
 void heartbeat(struct reb_simulation* sim){
   if(reb_output_check(sim, tmax/100000)){        // outputs every 100 REBOUND years
     struct rebx_extras* const rebx = sim->extras;
-    FILE* of_orb = fopen("output_orbits.txt", "a");
-    FILE* of_spins = fopen("output_spins.txt", "a");
-    FILE* of_test = fopen("output_tp.txt", "a");
+    //FILE* of_orb = fopen("output_orbits.txt", "a");
+    //FILE* of_spins = fopen("output_spins.txt", "a");
+    FILE* of_test = fopen("output_tp_slow.txt", "a");
     //if (of_orb == NULL || of_spins == NULL){
     //    reb_error(sim, "Can not open file.");
     //    return;
@@ -315,11 +318,11 @@ void heartbeat(struct reb_simulation* sim){
     reb_tools_xyz_to_spherical(sv2, &mag2, &theta2, &phi2);
 
     //fprintf(of_orb, "%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e\n", sim->t, a1, e1, i1, pom1, Om1, norm1.x, norm1.y, norm1.z, a2, e2, i2, pom2, Om2, norm2.x, norm2.y, norm2.z);  // prints the spins and orbits of all bodies
-    fprintf(of_orb, "%e,%e,%e,%e,%e\n", sim->t, a1, Om1, a2, Om2);  // prints the spins and orbits of all bodies
-    fclose(of_orb);
+    //fprintf(of_orb, "%e,%e,%e,%e,%e\n", sim->t, a1, Om1, a2, Om2);  // prints the spins and orbits of all bodies
+    //fclose(of_orb);
     //fprintf(of_spins, "%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e\n", sim->t, Omega_sun->x, Omega_sun->y, Omega_sun->z, mag1, theta1, phi1, mag2, theta2, phi2, Omega_p1->x, Omega_p1->y, Omega_p1->z, Omega_p2->x, Omega_p2->y, Omega_p2->z);
-    fprintf(of_spins, "%e,%e,%e,%e,%e\n", sim->t, mag1, theta1, mag2, theta2);
-    fclose(of_spins);
+    //fprintf(of_spins, "%e,%e,%e,%e,%e\n", sim->t, mag1, theta1, mag2, theta2);
+    //fclose(of_spins);
     //fprintf(of_test, "%f,%f,%f,%f,%f,%f,%f\n", sim->t, at, et, it, normt.x, normt.y, normt.z);
     //fclose(of_test);
 
@@ -344,6 +347,7 @@ void heartbeat(struct reb_simulation* sim){
       fprintf(of_test, ",%e,%e,%e,%e,%f,%f", lhat.x, lhat.y, lhat.z, lhat_ode->y[i*4+3],theta,phi);
     }
 
+
     const double* k2 = rebx_get_param(sim->extras, sim->particles[1].ap, "k2");
     double rp = sim->particles[1].r;
     double mp = sim->particles[1].m;
@@ -353,6 +357,7 @@ void heartbeat(struct reb_simulation* sim){
 
     fprintf(of_test, ",%e\n", lr);
     fclose(of_test);
+
   }
 
   if(reb_output_check(sim, 100.*M_PI)){        // outputs to the screen
