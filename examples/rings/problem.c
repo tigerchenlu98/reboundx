@@ -20,9 +20,9 @@
  #include "tides_spin.c"
 
 void heartbeat(struct reb_simulation* r);
-double tmax = 2e4 * M_PI * 2.;
+double tmax = 1e5 * M_PI * 2.;
 int Ntest = 5;
-double inv_alignment_ts = 1./(1e8 * M_PI * 2.);
+double inv_alignment_ts = 1./(1e4 * M_PI * 2.);
 
 void derivatives(struct reb_ode* const ode, double* const yDot, const double* const y, const double t){
     // From Zanazzi & Lai 2017
@@ -85,21 +85,34 @@ void derivatives(struct reb_ode* const ode, double* const yDot, const double* co
       // simple alignment torque
       // Align towards Laplace Equilibrium in planet frame
       const double le_theta = theta_p - 0.5 * atan2(sin(2.*theta_p),cos(2.*theta_p) + (lr/d)*(lr/d)*(lr/d)*(lr/d)*(lr/d)); // In the planet frame
-      struct reb_vec3d beta_vec = reb_tools_spherical_to_xyz(1., le_theta, phi_p);// In the planet frame
+      struct reb_vec3d beta_vec = {};
+      beta_vec.z = 1.;
+
+      //struct reb_vec3d beta_vec = reb_tools_spherical_to_xyz(1., le_theta, phi_p);// In the planet frame
       reb_vec3d_irotate(&beta_vec, invrot); // rotates into xyz frame.
 
       struct reb_vec3d beta_cross_l = reb_vec3d_cross(beta_vec, l_hat);
       struct reb_vec3d l_cross_t1 = reb_vec3d_cross(l_hat, beta_cross_l);
-      struct reb_vec3d talign = reb_vec3d_mul(l_cross_t1, inv_alignment_ts);
+      struct reb_vec3d talign = reb_vec3d_mul(l_cross_t1, 1.);//inv_alignment_ts);
 
       // DiffEq
-      const double inv_prefactor = 1. / (d * d * omega);
-      yDot[i*4+0] = inv_prefactor * (tstar.x + tplanet.x + talign.x);
-      yDot[i*4+1] = inv_prefactor * (tstar.y + tplanet.y + talign.y);
-      yDot[i*4+2] = inv_prefactor * (tstar.z + tplanet.z + talign.z);
+      const double inv_prefactor = 1. / (d * d * sqrt(ode->r->G * mp / (d * d * d)));
+      yDot[i*4+0] = inv_prefactor * (tstar.x + tplanet.x) + talign.x;
+      yDot[i*4+1] = inv_prefactor * (tstar.y + tplanet.y) + talign.y;
+      yDot[i*4+2] = inv_prefactor * (tstar.z + tplanet.z) + talign.z;
       yDot[i*4+3] = 0;
+/*
+      if (ode->r->t >= 3000 * 2 * M_PI || ode->r->t < 0.1 * 2 * M_PI){
+        double starmag = sqrt(reb_vec3d_length_squared(tstar));
+        double planetmag = sqrt(reb_vec3d_length_squared(tplanet));
+        double alignmag = sqrt(reb_vec3d_length_squared(talign));
+        printf("%f %e %e %e\n", ode->r->t, starmag,planetmag,alignmag);
+      }
+      if (ode->r->t >= 3000.1 * 2 * M_PI){
+        exit(1);
+      }
+      */
     }
-    //exit(1);
 }
 
 char title[100] = "831_fd_";
@@ -162,7 +175,7 @@ int main(int argc, char* argv[]){
       ho->y[i*4+3] = ta;
 
       // remove particle
-      reb_remove(sim, 2, 1);
+      reb_remove(sim, 3, 1);
     }
 
     // Add REBOUNDx effects
@@ -229,11 +242,6 @@ void heartbeat(struct reb_simulation* sim){
       struct reb_ode** odes = sim->odes;
       struct reb_ode* lhat_ode = odes[0];
 
-      double omega;
-      double theta_p;
-      double phi_p;
-      reb_tools_xyz_to_spherical(sp, &omega, &theta_p, &phi_p);
-
       struct reb_vec3d sp_hat = reb_vec3d_normalize(sp);
 
       struct reb_orbit op = reb_tools_particle_to_orbit(sim->G, sim->particles[1], sim->particles[0]); // planet orbit
@@ -252,6 +260,12 @@ void heartbeat(struct reb_simulation* sim){
         rot = reb_rotation_identity();
       }
       reb_vec3d_irotate(&sp_hat, rot);
+      reb_vec3d_irotate(&sp, rot);
+
+      double omega;
+      double theta_p;
+      double phi_p;
+      reb_tools_xyz_to_spherical(sp, &omega, &theta_p, &phi_p);
       fprintf(of, "%f,%f,%f,%f,%f,%f",sim->t,sp_hat.x, sp_hat.y, sp_hat.z,theta_p,phi_p);
 
       for (unsigned int i = 0; i < Ntest; i++){
