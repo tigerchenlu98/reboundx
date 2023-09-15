@@ -21,8 +21,8 @@ void heartbeat(struct reb_simulation* sim);
 double factor = 5.;
 double tmax = 1e6; // set short to run quickly. Set to 4e6 * 2 * M_PI in paper
 
-int Ntest = 12;
-//double inv_alignment_ts = 1./(1e6 * M_PI * 2.);
+int Ntest = 10;
+double inv_alignment_ts = 1./(1e6 * M_PI * 2.);
 
 void derivatives(struct reb_ode* const ode, double* const yDot, const double* const y, const double t){
     // From Zanazzi & Lai 2017
@@ -114,16 +114,19 @@ int main(int argc, char* argv[]){
 
     const double pm = 5. * 3.0e-6;
     const double pr = 2.5 * 4.26e-5;
-    const double pa1_init = 0.5;
-    const double pa2_init = pa1_init * pow(1.55, 2./3.);
-    reb_add_fmt(sim, "m r a inc", pm, pr, pa1_init, 0.3 * (M_PI/180.)); // Planet 1
-    reb_add_fmt(sim, "m r a inc", pm, pr, pa2_init, -0.3 * (M_PI/180.)); // Planet 1
+    //const double pa1_init = 0.5;
+    //const double pa2_init = pa1_init * pow(1.55, 2./3.);
+    //reb_add_fmt(sim, "m r a inc", pm, pr, pa1_init, 0.3 * (M_PI/180.)); // Planet 1
+    //reb_add_fmt(sim, "m r a inc", pm, pr, pa2_init, -0.3 * (M_PI/180.)); // Planet 1
+
+    reb_add_fmt(sim, "m a e r inc Omega pomega M", pm, 0.17308688, 0.01, pr, 0.5 * (M_PI / 180.), 0.0 * (M_PI / 180.), 0.0 * (M_PI / 180.), 0.0 * (M_PI / 180.)); // Planet 1
+    reb_add_fmt(sim, "m a e r inc Omega pomega M", pm, 0.23290608, 0.01, pr, -0.431 * (M_PI / 180.), 0.0 * (M_PI / 180.), 0.0 * (M_PI / 180.), 0.0 * (M_PI / 180.)); // Planet 2
 
     // add test particles
     sim->N_active = 3;
     sim->integrator = REB_INTEGRATOR_WHFAST;
-    struct reb_orbit op1 = reb_tools_particle_to_orbit(sim->G, sim->particles[1], sim->particles[0]);
-    sim->dt = op1.P / 10.56789;
+    //struct reb_orbit op1 = reb_tools_particle_to_orbit(sim->G, sim->particles[1], sim->particles[0]);
+    sim->dt = 1e-3;//op1.P / 10.56789;
     sim->heartbeat = heartbeat;
 
     struct reb_particle planet = sim->particles[1];
@@ -165,40 +168,42 @@ int main(int argc, char* argv[]){
     // Sun
     const double solar_spin_period = 20 * 2 * M_PI / 365;
     const double solar_spin = (2 * M_PI) / solar_spin_period;
+    const double solar_Q = 1000000.;
     rebx_set_param_double(rebx, &sim->particles[0].ap, "k2", 0.07);
     rebx_set_param_double(rebx, &sim->particles[0].ap, "I", 0.07 * solar_mass * solar_rad * solar_rad);
     rebx_set_param_vec3d(rebx, &sim->particles[0].ap, "Omega", (struct reb_vec3d){.z = solar_spin}); // Omega_x = Omega_y = 0 by default
 
+    // We assume tau = 1/(2*n*Q) with n the mean motion, even though the spin is not synchronized with the orbit (see Lu et al. (2023))
+    struct reb_orbit orb = reb_tools_particle_to_orbit(sim->G, sim->particles[1], sim->particles[0]);
+    rebx_set_param_double(rebx, &sim->particles[0].ap, "tau", 1./(2.*orb.n*solar_Q));
+
     // P1
-    const double spin_period_1 = 1. * 2. * M_PI / 365.; // 5 days in REBOUND time units
+    const double spin_period_1 = 5. * 2. * M_PI / 365.; // 5 days in REBOUND time units
     const double spin_1 = (2. * M_PI) / spin_period_1;
-    const double planet_Q = 5e2;
-    const double theta_1 = 1. * (M_PI / 180.);
-    struct reb_vec3d Omega_1 = reb_tools_spherical_to_xyz(spin_1, theta_1, 0.0);
+    const double planet_Q = 10000.;
     rebx_set_param_double(rebx, &sim->particles[1].ap, "k2", 0.4);
-    rebx_set_param_double(rebx, &sim->particles[1].ap, "I", 2. * 0.25 * pm * pr * pr);
-    rebx_set_param_vec3d(rebx, &sim->particles[1].ap, "Omega", Omega_1);
-    rebx_set_param_double(rebx, &sim->particles[1].ap, "tau", 1./(2.*op1.n*planet_Q));
+    rebx_set_param_double(rebx, &sim->particles[1].ap, "I", 0.25 * pm * pr * pr);
+    rebx_set_param_vec3d(rebx, &sim->particles[1].ap, "Omega", (struct reb_vec3d){.y=spin_1 * -0.0261769, .z=spin_1 * 0.99965732});
+
+    rebx_set_param_double(rebx, &sim->particles[1].ap, "tau", 1./(2.*orb.n*planet_Q));
 
     // P2
-    double spin_period_2 = 1. * 2. * M_PI / 365.; // 3 days in REBOUND time units
+    double spin_period_2 = 3. * 2. * M_PI / 365.; // 3 days in REBOUND time units
     double spin_2 = (2. * M_PI) / spin_period_2;
-    const double theta_2 = 1. * (M_PI / 180.);
-    struct reb_vec3d Omega_2 = reb_tools_spherical_to_xyz(spin_2, theta_2, 0.0);
     rebx_set_param_double(rebx, &sim->particles[2].ap, "k2", 0.4);
-    rebx_set_param_double(rebx, &sim->particles[2].ap, "I", 2 * 0.25 * pm * pr * pr);
-    rebx_set_param_vec3d(rebx, &sim->particles[2].ap, "Omega", Omega_2);
+    rebx_set_param_double(rebx, &sim->particles[2].ap, "I", 0.25 * pm * pr * pr);
+    rebx_set_param_vec3d(rebx, &sim->particles[2].ap, "Omega", (struct reb_vec3d){.y=spin_2 * 0.0249736, .z=spin_2 * 0.99968811});
 
-    struct reb_orbit op2 = reb_tools_particle_to_orbit(sim->G, sim->particles[2], sim->particles[0]);
-    rebx_set_param_double(rebx, &sim->particles[2].ap, "tau", 1./(2.*op2.n*planet_Q));
+    struct reb_orbit orb2 = reb_tools_particle_to_orbit(sim->G, sim->particles[2], sim->particles[0]);
+    rebx_set_param_double(rebx, &sim->particles[2].ap, "tau", 1./(2.*orb2.n*planet_Q));
 
     // And migration
     struct rebx_force* mo = rebx_load_force(rebx, "modify_orbits_forces");
     rebx_add_force(rebx, mo);
 
     // Set migration parameters
-    rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_a", -1.25e6 * 2 * M_PI * factor);
-    rebx_set_param_double(rebx, &sim->particles[2].ap, "tau_a", (-1.25e6 * 2 * M_PI * factor) / 1.1);
+    rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_a", -5e6 * 2 * M_PI);
+    rebx_set_param_double(rebx, &sim->particles[2].ap, "tau_a", (-5e6 * 2 * M_PI) / 1.1);
 
     reb_move_to_com(sim);
 
@@ -214,17 +219,16 @@ int main(int argc, char* argv[]){
     //system("rm -v output_orbits.txt"); // remove previous output files
     //system("rm -v output_spins.txt");
     //system("rm -v output_tp.txt");
-/*
-    FILE* of_orb = fopen("output_orbits.txt", "a");
+
+    FILE* of_orb = fopen("output_orbits_ml19_6.txt", "a");
     fprintf(of_orb,"t,a1,Om1,a2,Om2\n");
     fclose(of_orb);
 
-    FILE* of_spins = fopen("output_spins.txt", "a");
+    FILE* of_spins = fopen("output_spins_ml19_6.txt", "a");
     fprintf(of_spins,"t,mag1,theta1,mag2,theta2\n");
     fclose(of_spins);
-    */
 
-    FILE* of = fopen("output_tp_slow.txt", "w");
+    FILE* of = fopen("output_tp_ml19_bvec_6.txt", "w");
     fprintf(of, "t");
     for (int i = 1; i < Ntest+1; i++){
       fprintf(of, ",nx%d,ny%d,nz%d,a%d,theta%d,phi%d",i,i,i,i,i,i);
@@ -234,16 +238,16 @@ int main(int argc, char* argv[]){
 
     //system("rm -v output_test_1.txt");
 
-    //reb_integrate(sim, tmax/2);
-    tmax *= factor;
-    reb_integrate(sim,3.*tmax);
+    reb_integrate(sim, tmax/2);
+    //tmax *= factor;
+    //reb_integrate(sim,3tmax);
     // reb_simulationarchive_snapshot(sim, "archive.bin");
 
     //printf("Migration Switching Off\n");
     rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_a", INFINITY);
     rebx_set_param_double(rebx, &sim->particles[2].ap, "tau_a", INFINITY);
 
-    reb_integrate(sim, 6.*tmax);
+    reb_integrate(sim, tmax);
 
     rebx_free(rebx);
     reb_free_simulation(sim);
@@ -252,9 +256,9 @@ int main(int argc, char* argv[]){
 void heartbeat(struct reb_simulation* sim){
   if(reb_output_check(sim, tmax/100000)){        // outputs every 100 REBOUND years
     struct rebx_extras* const rebx = sim->extras;
-    //FILE* of_orb = fopen("output_orbits.txt", "a");
-    //FILE* of_spins = fopen("output_spins.txt", "a");
-    FILE* of_test = fopen("output_tp_slow.txt", "a");
+    FILE* of_orb = fopen("output_orbits_ml19_6.txt", "a");
+    FILE* of_spins = fopen("output_spins_ml19_6.txt", "a");
+    FILE* of_test = fopen("output_tp_ml19_bvec_6.txt", "a");
     //if (of_orb == NULL || of_spins == NULL){
     //    reb_error(sim, "Can not open file.");
     //    return;
