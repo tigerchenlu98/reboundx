@@ -20,9 +20,10 @@
  #include "tides_spin.c"
 
 void heartbeat(struct reb_simulation* r);
-double tmax = 1e5 * M_PI * 2.;
-int Ntest = 5;
-double inv_alignment_ts = 1./(1e4 * M_PI * 2.);
+double tmax = 1e6 * M_PI * 2.;
+int Ntest = 1;
+int cond = 0;
+double inv_alignment_ts = 1./(1e3 * M_PI * 2.);
 
 void derivatives(struct reb_ode* const ode, double* const yDot, const double* const y, const double t){
     // From Zanazzi & Lai 2017
@@ -84,18 +85,25 @@ void derivatives(struct reb_ode* const ode, double* const yDot, const double* co
 
       // simple alignment torque
       // Align towards Laplace Equilibrium in planet frame
-      /*
-      const double le_theta = theta_p - 0.5 * atan2(sin(2.*theta_p),cos(2.*theta_p) + (lr/d)*(lr/d)*(lr/d)*(lr/d)*(lr/d)); // In the planet frame
-      struct reb_vec3d beta_vec = {};
-      beta_vec.z = 1.;
 
-      //struct reb_vec3d beta_vec = reb_tools_spherical_to_xyz(1., le_theta, phi_p);// In the planet frame
+      const double le_theta = theta_p - 0.5 * atan2(sin(2.*theta_p),cos(2.*theta_p) + (lr/d)*(lr/d)*(lr/d)*(lr/d)*(lr/d)); // In the planet frame
+      struct reb_vec3d beta_vec = reb_tools_spherical_to_xyz(1., le_theta, phi_p);// In the planet frame
       reb_vec3d_irotate(&beta_vec, invrot); // rotates into xyz frame.
 
-      struct reb_vec3d beta_cross_l = reb_vec3d_cross(beta_vec, l_hat);
-      struct reb_vec3d l_cross_t1 = reb_vec3d_cross(l_hat, beta_cross_l);
-      */
-      struct reb_vec3d talign = {};//reb_vec3d_mul(l_cross_t1, 1.);//inv_alignment_ts);
+      struct reb_vec3d delta_i = {};
+      delta_i.x = beta_vec.x - l_hat.x;
+      delta_i.y = beta_vec.y - l_hat.y;
+      delta_i.z = beta_vec.z - l_hat.z;
+/*
+      if (ode->r->t > 0.04*1e6 * M_PI * 2.){
+        printf("\n%f %f %f %f\n", ode->r->t, beta_vec.x, beta_vec.y, beta_vec.z);
+        printf("%f %f %f %f\n", ode->r->t, l_hat.x, l_hat.y, l_hat.z);
+        printf("%f %f %f %f\n", ode->r->t, delta_i.x, delta_i.y, delta_i.z);
+        exit(1);
+      }
+*/
+      const double align_prefactor = inv_alignment_ts * ode->r->dt;//inv_alignment_ts * exp(-1. * ode->r->t * inv_alignment_ts);
+      struct reb_vec3d talign = reb_vec3d_mul(delta_i, align_prefactor);//inv_alignment_ts);
 
       // DiffEq
       const double inv_prefactor = 1. / (d * d * sqrt(ode->r->G * mp / (d * d * d)));
@@ -115,6 +123,7 @@ void derivatives(struct reb_ode* const ode, double* const yDot, const double* co
       }
       */
     }
+    cond = 1;
 }
 
 char title[100] = "831_fd_";
@@ -155,12 +164,15 @@ int main(int argc, char* argv[]){
     struct reb_orbit op = reb_tools_particle_to_orbit(sim->G, sim->particles[1], sim->particles[0]);
     sim->dt = op.P / 10.6789;
 
-    struct reb_ode* ho = reb_create_ode(sim,Ntest*4+1);   // Add an ODE with 2 dimensions
-    ho->derivatives = derivatives;              // Right hand side of the ODE
+// ----------------HARMONIC OSCILLATOR----------------------
+    //struct reb_ode* ho = reb_create_ode(sim,Ntest*4+1);   // Add an ODE with 2 dimensions
+    //ho->derivatives = derivatives;              // Right hand side of the ODE
+// ----------------HARMONIC OSCILLATOR----------------------
 
     // Test particle
     for (unsigned int i = 0; i < Ntest; i++){
-      double ta = (1.5 + 2*i) * pr;
+      //double ta = (1.5 + 2*i) * pr;
+      double ta = (1.5 + 2*2) * pr;
       reb_add_fmt(sim, "primary a", planet, ta);
 
       struct reb_orbit o = reb_tools_particle_to_orbit(sim->G, sim->particles[2], sim->particles[1]);
@@ -171,14 +183,16 @@ int main(int argc, char* argv[]){
       //  sim->dt = o.P / 10.6789;
       //}
 
-      ho->y[i*4+0] = l_hat.x;                               // Initial conditions
-      ho->y[i*4+1] = l_hat.y;
-      ho->y[i*4+2] = l_hat.z;
-      ho->y[i*4+3] = ta;
+      //ho->y[i*4+0] = l_hat.x;                               // Initial conditions
+      //ho->y[i*4+1] = l_hat.y;
+      //ho->y[i*4+2] = l_hat.z;
+      //ho->y[i*4+3] = ta;
 
       // remove particle
-      reb_remove(sim, 3, 1);
+      reb_remove(sim, 2, 1);
     }
+
+
 
     // Add REBOUNDx effects
     // First tides_spin
@@ -214,7 +228,7 @@ int main(int argc, char* argv[]){
     FILE* of = fopen("output.txt", "w");
     fprintf(of, "t,px,py,pz,theta_p,phi_p");
     for (int i = 1; i < Ntest+1; i++){
-      fprintf(of, ",nx%d,ny%d,nz%d,a%d,theta%d,phi%d",i,i,i,i,i);
+      fprintf(of, ",nx%d,ny%d,nz%d,a%d,theta%d,phi%d",i,i,i,i,i,i);
     }
     fprintf(of,",lr\n");
     fclose(of);

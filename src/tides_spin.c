@@ -288,6 +288,9 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
           */
 
           for (int j=0; j<N_real; j++){
+            // KILL SPIN EVOLUTION
+            continue;
+
             if (i != j){
                 struct reb_particle* pj = &sim->particles[j];
 
