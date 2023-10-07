@@ -26,7 +26,7 @@ double inv_alignment_ts = 1./(1e6 * M_PI * 2.);
 
 char title1[100] = "output_orbits_107.txt";
 char title2[100] = "output_spins_107.txt";
-char title3[100] = "output_tp_bvec_107_nd_ols.txt";
+char title3[100] = "output_tp_bvec_107_damping.txt";
 
 const int p = 1;
 
@@ -90,7 +90,7 @@ void derivatives(struct reb_ode* const ode, double* const yDot, const double* co
 
       // simple alignment torque
       // Align towards Laplace Equilibrium in planet frame
-/*
+
       const double le_theta = theta_p - 0.5 * atan2(sin(2.*theta_p),cos(2.*theta_p) + (lr/d)*(lr/d)*(lr/d)*(lr/d)*(lr/d)); // In the planet frame
       struct reb_vec3d beta_vec = reb_tools_spherical_to_xyz(1., le_theta, phi_p);// In the planet frame
       reb_vec3d_irotate(&beta_vec, invrot); // rotates into xyz frame.
@@ -101,8 +101,8 @@ void derivatives(struct reb_ode* const ode, double* const yDot, const double* co
       delta_i.z = beta_vec.z - l_hat.z;
 
       const double align_prefactor = inv_alignment_ts;// * ode->r->dt;//inv_alignment_ts * exp(-1. * ode->r->t * inv_alignment_ts);
-*/
-      struct reb_vec3d talign = {};//reb_vec3d_mul(delta_i, align_prefactor);//inv_alignment_ts);
+
+      struct reb_vec3d talign = reb_vec3d_mul(delta_i, align_prefactor);//inv_alignment_ts);
 
       // DiffEq
       const double inv_prefactor = 1. / (d * d * sqrt(ode->r->G * mp / (d * d * d)));
@@ -209,7 +209,7 @@ int main(int argc, char* argv[]){
     const double lr = pow(2. * j2 * pr * pr * orb.a * orb.a * orb.a * pow((1 - orb.e),(3./2.)) * pm / solar_mass, (1./5.));
     for (unsigned int i = 0; i < Ntest; i++){
       double d = (0.5 + (double)i * 0.2) * pr;
-      double le_theta = thetap - 0.5 * atan(sin(2.*thetap)/(cos(2.*thetap) + (lr/d)*(lr/d)*(lr/d)*(lr/d)*(lr/d)));
+      double le_theta = 0.0;//thetap - 0.5 * atan(sin(2.*thetap)/(cos(2.*thetap) + (lr/d)*(lr/d)*(lr/d)*(lr/d)*(lr/d)));
 
       // Initialize particles on the Laplace surface!
       // Initialize in the planet frame
@@ -222,10 +222,10 @@ int main(int argc, char* argv[]){
       struct reb_vec3d l = o.hvec;
       struct reb_vec3d l_hat = reb_vec3d_normalize(l);
 
-      double magt;
-      double thetat;
-      double phit;
-      reb_tools_xyz_to_spherical(l_hat, &magt, &thetat, &phit);
+      //double magt;
+      //double thetat;
+      //double phit;
+      //reb_tools_xyz_to_spherical(l_hat, &magt, &thetat, &phit);
 
       //if (i == 0){
       //  sim->dt = o.P / 10.6789;
