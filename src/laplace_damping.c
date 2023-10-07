@@ -107,7 +107,7 @@ static struct reb_vec3d rebx_calculate_laplace_damping(struct reb_simulation* co
     const double a0 = -mu/( v2 - 2.*vcirc2 );
 
     const double j2 = (mag_p * mag_p * planet->r * planet->r * planet->r) / (3. * planet->m) * k2;
-    const double lr = pow(j2 * planet->r * planet->r * ap*ap*ap * pow((1 - ep*ep),(3./2.)) * planet->m / primary->m, (1./5.)); // star mass hard coded
+    const double lr = pow(2.*j2 * planet->r * planet->r * ap*ap*ap * pow((1 - ep*ep),(3./2.)) * planet->m / primary->m, (1./5.)); // star mass hard coded
 
     const double le_theta = theta_p - 0.5 * atan2(sin(2.*theta_p),cos(2.*theta_p) + (lr/a0)*(lr/a0)*(lr/a0)*(lr/a0)*(lr/a0)); // In the planet frame
     struct reb_vec3d beta_vec = reb_tools_spherical_to_xyz(1.,le_theta, phi_p);// In the planet frame
@@ -136,7 +136,7 @@ void rebx_laplace_damping(struct reb_simulation* const sim, struct rebx_force* c
 
     // For now just hard code in which planet we care about
     struct reb_particle* star = &particles[0];
-    struct reb_particle* planet = &particles[2];
+    struct reb_particle* planet = &particles[1];
     const double* const k2_ptr = rebx_get_param(sim->extras, planet->ap, "k2");
     const double* const tau_i_ptr = rebx_get_param(sim->extras, planet->ap, "tau_i");
     const struct reb_vec3d* const Omega_ptr = rebx_get_param(sim->extras, planet->ap, "Omega");
