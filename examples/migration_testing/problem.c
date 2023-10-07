@@ -26,7 +26,7 @@ double inv_alignment_ts = 1./(1e6 * M_PI * 2.);
 
 char title1[100] = "output_orbits_107.txt";
 char title2[100] = "output_spins_107.txt";
-char title3[100] = "output_tp_bvec_107_nd_zinc_p2.txt";
+char title3[100] = "output_tp_bvec_107_nd_ols_p2.txt";
 
 const int p = 2;
 
@@ -138,33 +138,6 @@ int main(int argc, char* argv[]){
     sim->dt = 1e-3;//op1.P / 10.56789;
     sim->heartbeat = heartbeat;
 
-    struct reb_particle planet = sim->particles[p];
-
-    struct reb_ode* ho = reb_create_ode(sim,Ntest*4+1);   // Add an ODE with 2 dimensions
-    ho->derivatives = derivatives;              // Right hand side of the ODE
-
-    // Test particle
-    for (unsigned int i = 0; i < Ntest; i++){
-      double ta = (0.5 + (double)i * 0.2) * pr;
-      reb_add_fmt(sim, "primary a", planet, ta);
-
-      struct reb_orbit o = reb_tools_particle_to_orbit(sim->G, sim->particles[3], sim->particles[p]);
-      struct reb_vec3d l = o.hvec;
-      struct reb_vec3d l_hat = reb_vec3d_normalize(l);
-
-      //if (i == 0){
-      //  sim->dt = o.P / 10.6789;
-      //}
-
-      ho->y[i*4+0] = l_hat.x;                               // Initial conditions
-      ho->y[i*4+1] = l_hat.y;
-      ho->y[i*4+2] = l_hat.z;
-      ho->y[i*4+3] = ta;
-
-      // remove particle
-      reb_remove(sim, 3, 1);
-    }
-
     // Add REBOUNDx Additional effects
     // First Spin
     struct rebx_extras* rebx = rebx_attach(sim);
@@ -205,6 +178,67 @@ int main(int argc, char* argv[]){
 
     struct reb_orbit orb2 = reb_tools_particle_to_orbit(sim->G, sim->particles[2], sim->particles[0]);
     rebx_set_param_double(rebx, &sim->particles[2].ap, "tau", 1./(2.*orb2.n*planet_Q));
+
+    struct reb_particle planet = sim->particles[p];
+    struct reb_vec3d* Omega_p = rebx_get_param(rebx, planet.ap, "Omega");
+
+    // Rotation from inv frame to planet frame
+    struct reb_orbit orbp = reb_tools_particle_to_orbit(sim->G, planet, sim->particles[0]);
+    struct reb_vec3d lonp = reb_vec3d_cross((struct reb_vec3d){.z =1}, orbp.hvec);  // Line of nodes is the new x-axis
+    struct reb_rotation rotp = reb_rotation_init_to_new_axes(orbp.hvec, lonp);
+
+    struct reb_vec3d svp = reb_vec3d_rotate(*Omega_p, rotp);
+
+    double magp;
+    double thetap;
+    double phip;
+    reb_tools_xyz_to_spherical(svp, &magp, &thetap, &phip);
+
+    double maginv;
+    double thetainv;
+    double phiinv;
+    reb_tools_xyz_to_spherical(*Omega_p, &maginv, &thetainv, &phiinv);
+
+    struct reb_rotation invrot = reb_rotation_inverse(rotp); // Planet to invariant plane
+
+    struct reb_ode* ho = reb_create_ode(sim,Ntest*4+1);   // Add an ODE with 2 dimensions
+    ho->derivatives = derivatives;              // Right hand side of the ODE
+
+    // Test particles
+    const double j2 = (0.4 / 3.) * (magp * magp * pr * pr * pr) / (sim->G * pm);
+    const double lr = pow(2. * j2 * pr * pr * orb.a * orb.a * orb.a * pow((1 - orb.e),(3./2.)) * pm / solar_mass, (1./5.));
+    for (unsigned int i = 0; i < Ntest; i++){
+      double d = (0.5 + (double)i * 0.2) * pr;
+      double le_theta = thetap - 0.5 * atan(sin(2.*thetap)/(cos(2.*thetap) + (lr/d)*(lr/d)*(lr/d)*(lr/d)*(lr/d)));
+
+      // Initialize particles on the Laplace surface!
+      // Initialize in the planet frame
+      reb_add_fmt(sim, "primary a inc Omega", planet, d, le_theta, 90 * M_PI/180. + phiinv);
+
+      // Rotate into invariant frame
+      reb_particle_irotate(&sim->particles[3], invrot);
+
+      struct reb_orbit o = reb_tools_particle_to_orbit(sim->G, sim->particles[3], sim->particles[p]);
+      struct reb_vec3d l = o.hvec;
+      struct reb_vec3d l_hat = reb_vec3d_normalize(l);
+
+      double magt;
+      double thetat;
+      double phit;
+      reb_tools_xyz_to_spherical(l_hat, &magt, &thetat, &phit);
+
+      //if (i == 0){
+      //  sim->dt = o.P / 10.6789;
+      //}
+
+      ho->y[i*4+0] = l_hat.x;                               // Initial conditions
+      ho->y[i*4+1] = l_hat.y;
+      ho->y[i*4+2] = l_hat.z;
+      ho->y[i*4+3] = d;
+
+      // remove particle
+      reb_remove(sim, 3, 1);
+    }
 
     // And migration
     struct rebx_force* mo = rebx_load_force(rebx, "modify_orbits_forces");
