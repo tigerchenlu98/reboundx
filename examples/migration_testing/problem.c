@@ -26,9 +26,9 @@ double inv_alignment_ts = 1./(1e6 * M_PI * 2.);
 
 char title1[100] = "output_orbits_107.txt";
 char title2[100] = "output_spins_107.txt";
-char title3[100] = "output_tp_bvec_107_damping.txt";
+char title3[100] = "output_tp_bvec_107_damping_p2.txt";
 
-const int p = 1;
+const int p = 2;
 
 void derivatives(struct reb_ode* const ode, double* const yDot, const double* const y, const double t){
     // From Zanazzi & Lai 2017
