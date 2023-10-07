@@ -95,10 +95,6 @@ struct reb_vec3d rebx_calculate_spin_distortion_acceleration(struct reb_particle
   const double t2 = omega_squared / (2. * (dr * dr * dr * dr * dr));
   const double t3 = omega_dot_d / (dr * dr * dr * dr * dr);
 
-  //const double t1 = 5. * omega_dot_d * omega_dot_d;
-  //const double t2 = d2 * omega_squared;
-  //const double t3 = 2 * d2 * omega_dot_d;
-
   // This is the spin component
   tot_force.x = (prefactor * ((t1 - t2) * dx - (t3 * Omega.x)));
   tot_force.y = (prefactor * ((t1 - t2) * dy - (t3 * Omega.y)));
@@ -263,12 +259,13 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
           yDot[3*Nspins + 2] = 0;
 
           const struct reb_vec3d Omega = {.x=y[3*Nspins], .y=y[3*Nspins+1], .z=y[3*Nspins+2]};
-          //struct reb_vec3d alignment;
-          //double alignment_ts;
 
-          //const struct reb_vec3d* alignment_ptr = rebx_get_param(rebx, pi->ap, "alignment");
-          //const double* alignment_ts_ptr = rebx_get_param(rebx, pi->ap, "alignment_ts");
-          /*
+          struct reb_vec3d alignment;
+          double alignment_ts;
+
+          const struct reb_vec3d* alignment_ptr = rebx_get_param(rebx, pi->ap, "alignment");
+          const double* alignment_ts_ptr = rebx_get_param(rebx, pi->ap, "alignment_ts");
+
           if (alignment_ptr != NULL && alignment_ts_ptr != NULL){
             alignment = *alignment_ptr;
             alignment_ts = *alignment_ts_ptr;
@@ -285,7 +282,7 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
             yDot[3*Nspins+1] -= (omega_mag / alignment_ts) * cross2.y;
             yDot[3*Nspins+2] -= (omega_mag / alignment_ts) * cross2.z;
           }
-          */
+
 
           for (int j=0; j<N_real; j++){
             // KILL SPIN EVOLUTION
@@ -319,9 +316,9 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
 		            struct reb_vec3d tf = rebx_calculate_spin_orbit_accelerations(pi, pj, sim->G, *k2, sigma_in, Omega);
 
 		// Eggleton et. al 1998 spin EoM (equation 36)
-                yDot[3*Nspins] += ((dy * tf.z - dz * tf.y) / (-I_specific));
-                yDot[3*Nspins + 1] += ((dz * tf.x - dx * tf.z) / (-I_specific));
-                yDot[3*Nspins + 2] += ((dx * tf.y - dy * tf.x) / (-I_specific));
+                yDot[3*Nspins] += 0.0;//((dy * tf.z - dz * tf.y) / (-I_specific));
+                yDot[3*Nspins + 1] += 0.0;//((dz * tf.x - dx * tf.z) / (-I_specific));
+                yDot[3*Nspins + 2] += 0.0;//((dx * tf.y - dy * tf.x) / (-I_specific));
 
             }
           }
@@ -442,7 +439,8 @@ void rebx_tides_spin(struct reb_simulation* const sim, struct rebx_force* const 
               // Test particle stuff
 
               if (target->m == 0){
-                if (i == 2){
+                // HARD CODED
+                if (i == 1){
                   // We only feel spin distortion from the planet
                   struct reb_vec3d tot_force = rebx_calculate_spin_distortion_acceleration(source, target, G, *k2, *Omega);
                   target->ax -= tot_force.x;

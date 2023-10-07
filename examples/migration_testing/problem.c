@@ -18,11 +18,15 @@
 #include "tides_spin.c"
 
 void heartbeat(struct reb_simulation* sim);
-double factor = 5.;
-double tmax = 1e6; // set short to run quickly. Set to 4e6 * 2 * M_PI in paper
+//double factor = 5.;
+double tmax = 4e6*2*M_PI; // set short to run quickly. Set to 4e6 * 2 * M_PI in paper
 
 int Ntest = 10;
 double inv_alignment_ts = 1./(1e6 * M_PI * 2.);
+
+char title1[100] = "output_orbits_107.txt";
+char title2[100] = "output_spins_107.txt";
+char title3[100] = "output_tp_bvec_107_nd_zinc.txt";
 
 void derivatives(struct reb_ode* const ode, double* const yDot, const double* const y, const double t){
     // From Zanazzi & Lai 2017
@@ -31,7 +35,8 @@ void derivatives(struct reb_ode* const ode, double* const yDot, const double* co
     const double mp = ode->r->particles[1].m;
     const double rp = ode->r->particles[1].r;
     struct reb_orbit op = reb_tools_particle_to_orbit(ode->r->G, ode->r->particles[1], ode->r->particles[0]); // planet orbit
-
+    const double opa = op.a;
+    const double ope = op.e;
     struct reb_vec3d lp = op.hvec;
     struct reb_vec3d lp_hat = reb_vec3d_normalize(lp);
 
@@ -58,8 +63,8 @@ void derivatives(struct reb_ode* const ode, double* const yDot, const double* co
 
     // Planet quadrupole
     const double* k2 = rebx_get_param(ode->r->extras, ode->r->particles[1].ap, "k2");
-    const double j2 = ((*k2) / 3.) * (omega * omega * rp * rp * rp) / (ode->r->G * mp);
-    const double lr = pow(j2 * rp * rp * op.a * op.a * op.a * pow((1 - op.e * op.e),(3./2.)) * mp / ms, (1./5.));
+    const double j2 = (*k2 / 3.) * (omega * omega * rp * rp * rp) / (ode->r->G * mp);
+    const double lr = pow(2. * j2 * rp * rp * opa * opa * opa * pow((1 - ope * ope),(3./2.)) * mp / ms, (1./5.));
 
     for (unsigned int i = 0; i < Ntest; i++){
       // Multiple particles
@@ -72,7 +77,7 @@ void derivatives(struct reb_ode* const ode, double* const yDot, const double* co
       double d = y[i*4+3];
 
       // star
-      const double star_prefactor = ((3. * ode->r->G * ms * d * d) / (4 * op.a * op.a * op.a)) * reb_vec3d_dot(l_hat, lp_hat);;
+      const double star_prefactor = ((3. * ode->r->G * ms * d * d) / (4 * opa * opa * opa)) * reb_vec3d_dot(l_hat, lp_hat);;
       struct reb_vec3d l_cross_lp = reb_vec3d_cross(l_hat, lp_hat);
       struct reb_vec3d tstar = reb_vec3d_mul(l_cross_lp, star_prefactor);
 
@@ -83,18 +88,19 @@ void derivatives(struct reb_ode* const ode, double* const yDot, const double* co
 
       // simple alignment torque
       // Align towards Laplace Equilibrium in planet frame
-      /*
+/*
       const double le_theta = theta_p - 0.5 * atan2(sin(2.*theta_p),cos(2.*theta_p) + (lr/d)*(lr/d)*(lr/d)*(lr/d)*(lr/d)); // In the planet frame
-      struct reb_vec3d beta_vec = {};
-      beta_vec.z = 1.;
-
-      //struct reb_vec3d beta_vec = reb_tools_spherical_to_xyz(1., le_theta, phi_p);// In the planet frame
+      struct reb_vec3d beta_vec = reb_tools_spherical_to_xyz(1., le_theta, phi_p);// In the planet frame
       reb_vec3d_irotate(&beta_vec, invrot); // rotates into xyz frame.
 
-      struct reb_vec3d beta_cross_l = reb_vec3d_cross(beta_vec, l_hat);
-      struct reb_vec3d l_cross_t1 = reb_vec3d_cross(l_hat, beta_cross_l);
-      */
-      struct reb_vec3d talign = {};//reb_vec3d_mul(l_cross_t1, 1.);//inv_alignment_ts);
+      struct reb_vec3d delta_i = {};
+      delta_i.x = beta_vec.x - l_hat.x;
+      delta_i.y = beta_vec.y - l_hat.y;
+      delta_i.z = beta_vec.z - l_hat.z;
+
+      const double align_prefactor = inv_alignment_ts;// * ode->r->dt;//inv_alignment_ts * exp(-1. * ode->r->t * inv_alignment_ts);
+*/
+      struct reb_vec3d talign = {};//reb_vec3d_mul(delta_i, align_prefactor);//inv_alignment_ts);
 
       // DiffEq
       const double inv_prefactor = 1. / (d * d * sqrt(ode->r->G * mp / (d * d * d)));
@@ -102,6 +108,7 @@ void derivatives(struct reb_ode* const ode, double* const yDot, const double* co
       yDot[i*4+1] = inv_prefactor * (tstar.y + tplanet.y) + talign.y;
       yDot[i*4+2] = inv_prefactor * (tstar.z + tplanet.z) + talign.z;
       yDot[i*4+3] = 0;
+
     }
 }
 
@@ -136,7 +143,7 @@ int main(int argc, char* argv[]){
 
     // Test particle
     for (unsigned int i = 0; i < Ntest; i++){
-      double ta = (1.5 + (double)i * 0.5) * pr;
+      double ta = (0.5 + (double)i * 0.2) * pr;
       reb_add_fmt(sim, "primary a", planet, ta);
 
       struct reb_orbit o = reb_tools_particle_to_orbit(sim->G, sim->particles[3], sim->particles[1]);
@@ -220,15 +227,15 @@ int main(int argc, char* argv[]){
     //system("rm -v output_spins.txt");
     //system("rm -v output_tp.txt");
 
-    FILE* of_orb = fopen("output_orbits_ml19_6.txt", "a");
+    FILE* of_orb = fopen(title1, "a");
     fprintf(of_orb,"t,a1,Om1,a2,Om2\n");
     fclose(of_orb);
 
-    FILE* of_spins = fopen("output_spins_ml19_6.txt", "a");
+    FILE* of_spins = fopen(title2, "a");
     fprintf(of_spins,"t,mag1,theta1,mag2,theta2\n");
     fclose(of_spins);
 
-    FILE* of = fopen("output_tp_ml19_bvec_6.txt", "w");
+    FILE* of = fopen(title3, "w");
     fprintf(of, "t");
     for (int i = 1; i < Ntest+1; i++){
       fprintf(of, ",nx%d,ny%d,nz%d,a%d,theta%d,phi%d",i,i,i,i,i,i);
@@ -256,9 +263,9 @@ int main(int argc, char* argv[]){
 void heartbeat(struct reb_simulation* sim){
   if(reb_output_check(sim, tmax/100000)){        // outputs every 100 REBOUND years
     struct rebx_extras* const rebx = sim->extras;
-    FILE* of_orb = fopen("output_orbits_ml19_6.txt", "a");
-    FILE* of_spins = fopen("output_spins_ml19_6.txt", "a");
-    FILE* of_test = fopen("output_tp_ml19_bvec_6.txt", "a");
+    FILE* of_orb = fopen(title1, "a");
+    FILE* of_spins = fopen(title2, "a");
+    FILE* of_test = fopen(title3, "a");
     //if (of_orb == NULL || of_spins == NULL){
     //    reb_error(sim, "Can not open file.");
     //    return;
@@ -321,12 +328,12 @@ void heartbeat(struct reb_simulation* sim){
     double phi2;
     reb_tools_xyz_to_spherical(sv2, &mag2, &theta2, &phi2);
 
-    //fprintf(of_orb, "%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e\n", sim->t, a1, e1, i1, pom1, Om1, norm1.x, norm1.y, norm1.z, a2, e2, i2, pom2, Om2, norm2.x, norm2.y, norm2.z);  // prints the spins and orbits of all bodies
-    //fprintf(of_orb, "%e,%e,%e,%e,%e\n", sim->t, a1, Om1, a2, Om2);  // prints the spins and orbits of all bodies
-    //fclose(of_orb);
-    //fprintf(of_spins, "%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e\n", sim->t, Omega_sun->x, Omega_sun->y, Omega_sun->z, mag1, theta1, phi1, mag2, theta2, phi2, Omega_p1->x, Omega_p1->y, Omega_p1->z, Omega_p2->x, Omega_p2->y, Omega_p2->z);
-    //fprintf(of_spins, "%e,%e,%e,%e,%e\n", sim->t, mag1, theta1, mag2, theta2);
-    //fclose(of_spins);
+    fprintf(of_orb, "%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e\n", sim->t, a1, e1, i1, pom1, Om1, norm1.x, norm1.y, norm1.z, a2, e2, i2, pom2, Om2, norm2.x, norm2.y, norm2.z);  // prints the spins and orbits of all bodies
+    fprintf(of_orb, "%e,%e,%e,%e,%e\n", sim->t, a1, Om1, a2, Om2);  // prints the spins and orbits of all bodies
+    fclose(of_orb);
+    fprintf(of_spins, "%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e,%e\n", sim->t, Omega_sun->x, Omega_sun->y, Omega_sun->z, mag1, theta1, phi1, mag2, theta2, phi2, Omega_p1->x, Omega_p1->y, Omega_p1->z, Omega_p2->x, Omega_p2->y, Omega_p2->z);
+    fprintf(of_spins, "%e,%e,%e,%e,%e\n", sim->t, mag1, theta1, mag2, theta2);
+    fclose(of_spins);
     //fprintf(of_test, "%f,%f,%f,%f,%f,%f,%f\n", sim->t, at, et, it, normt.x, normt.y, normt.z);
     //fclose(of_test);
 
@@ -364,7 +371,7 @@ void heartbeat(struct reb_simulation* sim){
 
   }
 
-  if(reb_output_check(sim, 100.*M_PI)){        // outputs to the screen
-      reb_output_timing(sim, 6.*tmax);
-  }
+  //if(reb_output_check(sim, 100.*M_PI)){        // outputs to the screen
+  //    reb_output_timing(sim, 6.*tmax);
+  //}
 }
