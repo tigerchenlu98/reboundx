@@ -19,7 +19,7 @@
 
 void heartbeat(struct reb_simulation* sim);
 //double factor = 5.;
-double tmax = 0.1e6*2*M_PI; // set short to run quickly. Set to 4e6 * 2 * M_PI in paper
+double tmax = 4e6*2*M_PI; // set short to run quickly. Set to 4e6 * 2 * M_PI in paper
 
 int Ntest = 10;
 double inv_alignment_ts = 1./(1e1 * M_PI * 2.);
