@@ -440,7 +440,7 @@ void rebx_tides_spin(struct reb_simulation* const sim, struct rebx_force* const 
 
               if (target->m == 0){
                 // HARD CODED
-                if (i == 1){
+                //if (i == 1){
                   // We only feel spin distortion from the planet
                   struct reb_vec3d tot_force = rebx_calculate_spin_distortion_acceleration(source, target, G, *k2, *Omega);
                   target->ax -= tot_force.x;
@@ -461,7 +461,7 @@ void rebx_tides_spin(struct reb_simulation* const sim, struct rebx_force* const 
                     target->az += damping.z;
                   }
                   */
-                }
+                //}
               }
 
               else{
