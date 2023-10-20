@@ -5,7 +5,7 @@
 #include "reboundx.h"
 #include "tides_spin.c"
 
-char title[100] = "output_1.txt";
+char title[100] = "output_3.txt";
 void heartbeat(struct reb_simulation* r);
 double tmax = 5000. * M_PI * 2.;
 int planets = 7;
@@ -139,6 +139,11 @@ int main(int argc, char* argv[]){
    double theta_e = 23.43389 * M_PI/180.;
    struct reb_vec3d spin_vec_e = reb_tools_spherical_to_xyz(spin_rate, inc5 - theta_e, 90.0 * M_PI/180.);
    rebx_set_param_vec3d(rebx, &sim->particles[4].ap, "Omega", spin_vec_e);
+
+   // General Relativity
+   struct rebx_force* gr = rebx_load_force(rebx, "gr");
+   rebx_add_force(rebx, gr);
+   rebx_set_param_double(rebx, &gr->ap, "c", 10065.32);
 
    // Let's create a reb_rotation object that rotates to new axes with newz pointing along the total ang. momentum, and x along the line of
    // nodes with the invariable plane (along z cross newz)
