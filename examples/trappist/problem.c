@@ -5,7 +5,7 @@
 #include "reboundx.h"
 #include "tides_spin.c"
 
-char title[100] = "output_3.txt";
+char title[100] = "output_1.txt";
 void heartbeat(struct reb_simulation* r);
 double tmax = 5000. * M_PI * 2.;
 int planets = 7;
@@ -141,9 +141,9 @@ int main(int argc, char* argv[]){
    rebx_set_param_vec3d(rebx, &sim->particles[4].ap, "Omega", spin_vec_e);
 
    // General Relativity
-   struct rebx_force* gr = rebx_load_force(rebx, "gr");
-   rebx_add_force(rebx, gr);
-   rebx_set_param_double(rebx, &gr->ap, "c", 10065.32);
+   //struct rebx_force* gr = rebx_load_force(rebx, "gr");
+   //rebx_add_force(rebx, gr);
+   //rebx_set_param_double(rebx, &gr->ap, "c", 10065.32);
 
    // Let's create a reb_rotation object that rotates to new axes with newz pointing along the total ang. momentum, and x along the line of
    // nodes with the invariable plane (along z cross newz)
@@ -178,7 +178,7 @@ void heartbeat(struct reb_simulation* sim){
 
      for (unsigned int i = 0; i < planets; i++){
        struct reb_orbit o = reb_tools_particle_to_orbit(sim->G, sim->particles[i+1], sim->particles[0]);
-       fprintf(of, ",%f,%f,%f,%f,%f,%f,%f", o.a, o.e, o.inc, o.Omega, o.omega, o.f); // print spins and orbits
+       fprintf(of, ",%f,%f,%f,%f,%f,%f", o.a, o.e, o.inc, o.Omega, o.omega, o.f); // print spins and orbits
      }
      fprintf(of,"\n");
      fclose(of);
