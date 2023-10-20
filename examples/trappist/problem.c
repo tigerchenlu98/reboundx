@@ -5,7 +5,7 @@
 #include "reboundx.h"
 #include "tides_spin.c"
 
-char title[100] = "output_5.txt";
+char title[100] = "output_2.txt";
 void heartbeat(struct reb_simulation* r);
 double tmax = 5000. * M_PI * 2.;
 int planets = 7;
@@ -116,13 +116,28 @@ int main(int argc, char* argv[]){
    const double solar_spin_period = 27. * 2. * M_PI / 365.;
    const double solar_spin = (2 * M_PI) / solar_spin_period;
    rebx_set_param_vec3d(rebx, &sim->particles[0].ap, "Omega", (struct reb_vec3d){.y=solar_spin}); // Omega_x = Omega_y = 0 by default
-   rebx_set_param_double(rebx, &sim->particles[0].ap, "tau", 1./(2.*1000000.*orb.n));
+   //rebx_set_param_double(rebx, &sim->particles[0].ap, "tau", 1./(2.*1000000.*orb.n));
 
    // Planets
    double k2 = 0.299;
    double tau_p = 712.37 / (86400. * 365.25 * 2 * M_PI); // Bolmont et al 2015, seconds to reb years
-   double spin_rate = 0.2617 * 24. * 365.25 * 2 * M_PI; // rad/hr to rad/reb years
+   double spin_rate;// = 0.2617 * 24. * 365.25 * 2 * M_PI; // rad/hr to rad/reb years
    for (unsigned int i = 0; i < planets; i++){
+     if (i == 0){
+       spin_rate = 0.173277243 * 24. * 365.25 * 2 * M_PI;
+     }
+
+     else if (i == 1){
+       spin_rate = 0.108100267 * 24. * 365.25 * 2 * M_PI;
+     }
+
+     else if (i == 2){
+       spin_rate = 0.064648050 * 24. * 365.25 * 2 * M_PI;
+     }
+
+     else{
+       spin_rate = 0.2617 * 24. * 365.25 * 2 * M_PI;
+     }
      rebx_set_param_double(rebx, &sim->particles[i+1].ap, "k2", k2);
      rebx_set_param_double(rebx, &sim->particles[i+1].ap, "I", 0.3 * ms[i] * rs[i] * rs[i]);
 
@@ -142,9 +157,9 @@ int main(int argc, char* argv[]){
    rebx_set_param_vec3d(rebx, &sim->particles[4].ap, "Omega", spin_vec_e);
 
    // General Relativity
-   struct rebx_force* gr = rebx_load_force(rebx, "gr");
-   rebx_add_force(rebx, gr);
-   rebx_set_param_double(rebx, &gr->ap, "c", 10065.32);
+   //struct rebx_force* gr = rebx_load_force(rebx, "gr");
+   //rebx_add_force(rebx, gr);
+   //rebx_set_param_double(rebx, &gr->ap, "c", 10065.32);
 
    // Let's create a reb_rotation object that rotates to new axes with newz pointing along the total ang. momentum, and x along the line of
    // nodes with the invariable plane (along z cross newz)
