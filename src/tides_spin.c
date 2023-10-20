@@ -285,8 +285,6 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
 
 
           for (int j=0; j<N_real; j++){
-            // KILL SPIN EVOLUTION
-            continue;
 
             if (i != j){
                 struct reb_particle* pj = &sim->particles[j];
@@ -316,9 +314,9 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
 		            struct reb_vec3d tf = rebx_calculate_spin_orbit_accelerations(pi, pj, sim->G, *k2, sigma_in, Omega);
 
 		// Eggleton et. al 1998 spin EoM (equation 36)
-                yDot[3*Nspins] += 0.0;//((dy * tf.z - dz * tf.y) / (-I_specific));
-                yDot[3*Nspins + 1] += 0.0;//((dz * tf.x - dx * tf.z) / (-I_specific));
-                yDot[3*Nspins + 2] += 0.0;//((dx * tf.y - dy * tf.x) / (-I_specific));
+                yDot[3*Nspins] += ((dy * tf.z - dz * tf.y) / (-I_specific));
+                yDot[3*Nspins + 1] += ((dz * tf.x - dx * tf.z) / (-I_specific));
+                yDot[3*Nspins + 2] += ((dx * tf.y - dy * tf.x) / (-I_specific));
 
             }
           }

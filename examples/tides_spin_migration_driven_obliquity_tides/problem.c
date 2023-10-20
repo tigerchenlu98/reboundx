@@ -19,6 +19,9 @@
 
 void heartbeat(struct reb_simulation* sim);
 double tmax = 4e6 * 2 * M_PI; // set short to run quickly. Set to 4e6 * 2 * M_PI in paper
+int first_print = 1;
+int second_print = 1;
+int third_print = 1;
 
 int main(int argc, char* argv[]){
     struct reb_simulation* sim = reb_create_simulation();
@@ -93,7 +96,7 @@ int main(int argc, char* argv[]){
     rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_a", -5e6 * 2 * M_PI);
     rebx_set_param_double(rebx, &sim->particles[2].ap, "tau_a", (-5e6 * 2 * M_PI) / 1.1);
 
-    rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_i", 5e4 * 2 * M_PI);
+    //rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_i", 5e4 * 2 * M_PI);
 
     reb_move_to_com(sim);
 
@@ -110,26 +113,27 @@ int main(int argc, char* argv[]){
     system("rm -v output_spins.txt");
     //system("rm -v output_test_1.txt");
 
-    //reb_integrate(sim, tmax/2);
-    reb_integrate(sim,1e4*2*M_PI);
+    reb_integrate(sim, tmax/2);
     reb_simulationarchive_snapshot(sim, "archive.bin");
 
     //printf("Migration Switching Off\n");
-    //rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_a", INFINITY);
-    //rebx_set_param_double(rebx, &sim->particles[2].ap, "tau_a", INFINITY);
+    rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_a", INFINITY);
+    rebx_set_param_double(rebx, &sim->particles[2].ap, "tau_a", INFINITY);
 
-    //reb_integrate(sim, tmax);
+    reb_integrate(sim, tmax);
 
     rebx_free(rebx);
     reb_free_simulation(sim);
 }
 
 void heartbeat(struct reb_simulation* sim){
+  struct rebx_extras* const rebx = sim->extras;
+
   if(reb_output_check(sim, tmax/100000)){        // outputs every 100 REBOUND years
     struct rebx_extras* const rebx = sim->extras;
     FILE* of_orb = fopen("output_orbits.txt", "a");
     FILE* of_spins = fopen("output_spins.txt", "a");
-    FILE* of_test = fopen("output_test_d_1.txt", "a");
+    //FILE* of_test = fopen("output_test_d_1.txt", "a");
     //if (of_orb == NULL || of_spins == NULL){
     //    reb_error(sim, "Can not open file.");
     //    return;
@@ -138,7 +142,7 @@ void heartbeat(struct reb_simulation* sim){
     struct reb_particle* sun = &sim->particles[0];
     struct reb_particle* p1 = &sim->particles[1];
     struct reb_particle* p2 = &sim->particles[2];
-    struct reb_particle* test = &sim->particles[3];
+    //struct reb_particle* test = &sim->particles[3];
 
     // Orbit information
 
@@ -201,7 +205,52 @@ void heartbeat(struct reb_simulation* sim){
     //fclose(of_test);
   }
 
-  //if(reb_output_check(sim, 100.*M_PI)){        // outputs to the screen
-  //    reb_output_timing(sim, tmax);
-  //}
+
+  if (sim->t > 0.73*2*M_PI*1e6 && first_print){
+
+    printf("\nFirst print!\n");
+    for (unsigned int i = 0; i < sim->N; i++){
+      struct reb_particle* part = &sim->particles[i];
+      struct reb_vec3d* Omega_p = rebx_get_param(rebx, part->ap, "Omega");
+      printf("%d %e %e %e %e %e %e\n", i, part->x, part->y, part->z, part->vx, part->vy, part->vz);
+      printf("%e %e %e\n", Omega_p->x, Omega_p->y, Omega_p->z);
+    }
+    reb_simulationarchive_snapshot(sim, "archive.bin");
+    first_print = 0;
+
+  }
+
+  if (sim->t > 0.84*2*M_PI*1e6 && second_print){
+
+    printf("Second print!\n");
+    for (unsigned int i = 0; i < sim->N; i++){
+      struct reb_particle* part = &sim->particles[i];
+      struct reb_vec3d* Omega_p = rebx_get_param(rebx, part->ap, "Omega");
+      printf("%d %e %e %e %e %e %e\n", i, part->x, part->y, part->z, part->vx, part->vy, part->vz);
+      printf("%e %e %e\n", Omega_p->x, Omega_p->y, Omega_p->z);
+    }
+
+    reb_simulationarchive_snapshot(sim, "archive.bin");
+    second_print = 0;
+
+  }
+
+  if (sim->t > 1.5*2*M_PI*1e6 && third_print){
+
+    printf("Third print!\n");
+    for (unsigned int i = 0; i < sim->N; i++){
+      struct reb_particle* part = &sim->particles[i];
+      struct reb_vec3d* Omega_p = rebx_get_param(rebx, part->ap, "Omega");
+      printf("%d %e %e %e %e %e %e\n", i, part->x, part->y, part->z, part->vx, part->vy, part->vz);
+      printf("%e %e %e\n", Omega_p->x, Omega_p->y, Omega_p->z);
+    }
+
+    reb_simulationarchive_snapshot(sim, "archive.bin");
+    third_print = 0;
+
+  }
+
+  if(reb_output_check(sim, 100.*M_PI)){        // outputs to the screen
+      reb_output_timing(sim, tmax);
+  }
 }
