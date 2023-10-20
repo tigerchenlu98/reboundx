@@ -5,7 +5,7 @@
 #include "reboundx.h"
 #include "tides_spin.c"
 
-char title[100] = "output_3.txt";
+char title[100] = "output_4.txt";
 void heartbeat(struct reb_simulation* r);
 double tmax = 5000. * M_PI * 2.;
 int planets = 7;
@@ -116,6 +116,7 @@ int main(int argc, char* argv[]){
    const double solar_spin_period = 27. * 2. * M_PI / 365.;
    const double solar_spin = (2 * M_PI) / solar_spin_period;
    rebx_set_param_vec3d(rebx, &sim->particles[0].ap, "Omega", (struct reb_vec3d){.y=solar_spin}); // Omega_x = Omega_y = 0 by default
+   rebx_set_param_double(rebx, &sim->particles[0].ap, "tau", 1./(2.*1000000.*orb.n));
 
    // Planets
    double k2 = 0.299;
@@ -141,9 +142,9 @@ int main(int argc, char* argv[]){
    rebx_set_param_vec3d(rebx, &sim->particles[4].ap, "Omega", spin_vec_e);
 
    // General Relativity
-   struct rebx_force* gr = rebx_load_force(rebx, "gr");
-   rebx_add_force(rebx, gr);
-   rebx_set_param_double(rebx, &gr->ap, "c", 10065.32);
+   //struct rebx_force* gr = rebx_load_force(rebx, "gr");
+   //rebx_add_force(rebx, gr);
+   //rebx_set_param_double(rebx, &gr->ap, "c", 10065.32);
 
    // Let's create a reb_rotation object that rotates to new axes with newz pointing along the total ang. momentum, and x along the line of
    // nodes with the invariable plane (along z cross newz)
