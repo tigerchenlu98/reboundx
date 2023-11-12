@@ -10,8 +10,11 @@
 
 void heartbeat(struct reb_simulation* r);
 double tmax;
+int ind;
+int stable=1;
 
 char title[100] = "output_";
+char title_stats[100] = "output_stability_stats";
 char title_remove[100] = "rm -v output_";
 
 int main(int argc, char* argv[]){
@@ -19,14 +22,14 @@ int main(int argc, char* argv[]){
     sim->integrator         = REB_INTEGRATOR_WHFAST;
     sim->heartbeat          = heartbeat;
 
-    int index = 0;
+    ind = 0;
     if (argc == 2){
       strcat(title, argv[1]);
       strcat(title_remove, argv[1]);
-      index = atoi(argv[1]);
+      ind = atoi(argv[1]);
     }
 
-    sim->rand_seed = index;
+    sim->rand_seed = ind;
 
     // Initial conditions
     // Santerne et al 2019
@@ -80,7 +83,7 @@ int main(int argc, char* argv[]){
     reb_add_fmt(sim, "m a e inc M", mf, af, ef, incf, Mf);
 
     struct reb_orbit o = reb_tools_particle_to_orbit(sim->G, sim->particles[1], sim->particles[0]);
-    sim->dt = o.P / 20.6789;
+    sim->dt = o.P / 15.6789;
 
     // GR
     struct rebx_extras* rebx = rebx_attach(sim);
@@ -99,16 +102,22 @@ int main(int argc, char* argv[]){
     fprintf(of, "t,nx,ny,nz\n");
     fclose(of);
 
-    tmax = 1e6 * 2 * M_PI;
+    tmax = 1e5 * 2 * M_PI;
     reb_integrate(sim, tmax);
 
     for (unsigned i = 0; i < 5; i++){
       struct reb_orbit orb = reb_tools_particle_to_orbit(sim->G, sim->particles[i + 1], sim->particles[0]);
-      if (fabs(orb.a - planet_as[i]) / planet_as[i] > 0.5){
-        //printf("Unstable\n");
+      if (fabs(orb.a - planet_as[i]) / planet_as[i] > 0.1){
+        //printf("Unstable %d %f\n", i+1,orb.a);
+        stable=0;
         system(title_remove);
+        break;
       }
     }
+
+    FILE* sf = fopen(title_stats, "a");
+    fprintf(sf, "%d,%f,%f,%f,%f,%f,%d\n",mb/mearth,mc/mearth,md/mearth,me/mearth,mf/mearth,stable);
+    fclose(sf);
 
     rebx_free(rebx);
     reb_free_simulation(sim);
@@ -116,7 +125,7 @@ int main(int argc, char* argv[]){
 
 void heartbeat(struct reb_simulation* sim){
     // Output spin and orbital information to file
-    if(reb_output_check(sim, 1. * 2 * M_PI)){        // outputs every 10 REBOUND years
+    if(reb_output_check(sim, 100. * 2 * M_PI)){        // outputs every 10 REBOUND years
       struct rebx_extras* const rebx = sim->extras;
       FILE* of = fopen(title, "a");
       if (of==NULL){
@@ -126,11 +135,11 @@ void heartbeat(struct reb_simulation* sim){
 
       struct reb_orbit op = reb_tools_particle_to_orbit(sim->G, sim->particles[5], sim->particles[0]); // planet orbit
       struct reb_vec3d n = op.hvec;
-      fprintf(of, "%f,%e,%e,%e\n", sim->t, n.x, n.y, n.z);
+      fprintf(of, "%f,%e\n", sim->t, n.x);
       fclose(of);
     }
 
-    if(reb_output_check(sim, 20.*M_PI)){        // outputs to the screen
-        reb_output_timing(sim, tmax);
-    }
+    //if(reb_output_check(sim, 20.*M_PI)){        // outputs to the screen
+    //    reb_output_timing(sim, tmax);
+    //}
 }
