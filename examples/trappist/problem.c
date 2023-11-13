@@ -5,17 +5,18 @@
 #include "reboundx.h"
 #include "tides_spin.c"
 
-char title[100] = "output_2.txt";
-void heartbeat(struct reb_simulation* r);
+// CURRENTLY CASE 1
+
+// Output file name - edit for each case
+char title[100] = "output_1.txt";
+void heartbeat(struct reb_simulation* sim);
 double tmax = 5000. * M_PI * 2.;
 int planets = 7;
 
 int main(int argc, char* argv[]){
    struct reb_simulation* sim = reb_create_simulation();
    // Initial conditions
-   sim->integrator         = REB_INTEGRATOR_WHFAST; // IAS15 is used for its adaptive timestep:
-                                                  // in a Kozai cycle the planet experiences close encounters during the high-eccentricity epochs.
-                                                  // A fixed-time integrator (for example, WHFast) would need to apply the worst-case timestep to the whole simulation
+   sim->integrator         = REB_INTEGRATOR_WHFAST;
    sim->heartbeat          = heartbeat;
 
    // Initial conditions
@@ -31,7 +32,7 @@ int main(int argc, char* argv[]){
    double a1 = 20.843 * star.r;
    double e1 = 0.003055;
    double inc1 = 89.728 * M_PI/180.;
-   double pomega1 = 134.73 * M_PI/180.;
+   double omega1 = 134.73 * M_PI/180.;
    double Omega1 = 0.;
    double f1 = 45.98212 * M_PI/180.;
 
@@ -40,7 +41,7 @@ int main(int argc, char* argv[]){
    double a2 = 28.549 * star.r;
    double e2 = 0.000550;
    double inc2 = 89.778 * M_PI/180.;
-   double pomega2 = 1.041627 * M_PI/180.;
+   double omega2 = 1.041627 * M_PI/180.;
    double Omega2 = 0.;
    double f2 = -8.568899 * M_PI/180.;
 
@@ -49,7 +50,7 @@ int main(int argc, char* argv[]){
    double a3 = 40.216 * star.r;
    double e3 = 0.005633;
    double inc3 = 89.896 * M_PI/180.;
-   double pomega3 = 151.706133229934 * M_PI/180.;
+   double omega3 = 151.706133229934 * M_PI/180.;
    double Omega3 = 0.;
    double f3 = 15.0620262596043 * M_PI/180.;
 
@@ -58,7 +59,7 @@ int main(int argc, char* argv[]){
    double a4 = 52.855 * star.r;
    double e4 = 0.006325;
    double inc4 = 89.793 * M_PI/180.;
-   double pomega4 = 313.206087730948 * M_PI/180.;
+   double omega4 = 313.206087730948 * M_PI/180.;
    double Omega4 = 0.;
    double f4 = -217.102135813412 * M_PI/180.;
 
@@ -67,7 +68,7 @@ int main(int argc, char* argv[]){
    double a5 = 69.543 * star.r;
    double e5 = 0.008415;
    double inc5 = 89.740 * M_PI/180.;
-   double pomega5 = 183.474407367532 * M_PI/180.;
+   double omega5 = 183.474407367532 * M_PI/180.;
    double Omega5 = 0.;
    double f5 = -59.9711817502667 * M_PI/180.;
 
@@ -76,7 +77,7 @@ int main(int argc, char* argv[]){
    double a6 = 84.591 * star.r;
    double e6 = 0.004010;
    double inc6 = 89.742 * M_PI/180.;
-   double pomega6 = 18.615692007331 * M_PI/180.;
+   double omega6 = 18.615692007331 * M_PI/180.;
    double Omega6 = 0.;
    double f6 = 77.6950168190991 * M_PI/180.;
 
@@ -85,20 +86,20 @@ int main(int argc, char* argv[]){
    double a7 = 20.843 * star.r;
    double e7 = 0.003055;
    double inc7 = 89.728 * M_PI/180.;
-   double pomega7 = 180.313946334794 * M_PI/180.;
+   double omega7 = 180.313946334794 * M_PI/180.;
    double Omega7 = 0.;
    double f7 = 69.3197659604004 * M_PI/180.;
 
    double ms[7] = {m1,m2,m3,m4,m5,m6,m7};
    double rs[7] = {r1,r2,r3,r4,r5,r6,r7};
 
-   reb_add_fmt(sim, "m r a e inc pomega Omega f", m1, r1, a1, e1, inc1, pomega1, Omega1, f1);
-   reb_add_fmt(sim, "m r a e inc pomega Omega f", m2, r2, a2, e2, inc2, pomega2, Omega2, f2);
-   reb_add_fmt(sim, "m r a e inc pomega Omega f", m3, r3, a3, e3, inc3, pomega3, Omega3, f3);
-   reb_add_fmt(sim, "m r a e inc pomega Omega f", m4, r4, a4, e4, inc4, pomega4, Omega4, f4);
-   reb_add_fmt(sim, "m r a e inc pomega Omega f", m5, r5, a5, e5, inc5, pomega5, Omega5, f5);
-   reb_add_fmt(sim, "m r a e inc pomega Omega f", m6, r6, a6, e6, inc6, pomega6, Omega6, f6);
-   reb_add_fmt(sim, "m r a e inc pomega Omega f", m7, r7, a7, e7, inc7, pomega7, Omega7, f7);
+   reb_add_fmt(sim, "primary m r a e inc omega Omega f", sim->particles[0], m1, r1, a1, e1, inc1, omega1, Omega1, f1);
+   reb_add_fmt(sim, "primary m r a e inc omega Omega f", sim->particles[0], m2, r2, a2, e2, inc2, omega2, Omega2, f2);
+   reb_add_fmt(sim, "primary m r a e inc omega Omega f", sim->particles[0], m3, r3, a3, e3, inc3, omega3, Omega3, f3);
+   reb_add_fmt(sim, "primary m r a e inc omega Omega f", sim->particles[0], m4, r4, a4, e4, inc4, omega4, Omega4, f4);
+   reb_add_fmt(sim, "primary m r a e inc omega Omega f", sim->particles[0], m5, r5, a5, e5, inc5, omega5, Omega5, f5);
+   reb_add_fmt(sim, "primary m r a e inc omega Omega f", sim->particles[0], m6, r6, a6, e6, inc6, omega6, Omega6, f6);
+   reb_add_fmt(sim, "primary m r a e inc omega Omega f", sim->particles[0], m7, r7, a7, e7, inc7, omega7, Omega7, f7);
 
    struct reb_orbit orb = reb_tools_particle_to_orbit(sim->G, sim->particles[1], sim->particles[0]);
    sim->dt = orb.P / 15.6789;     // initial timestep as a function of orbital period
@@ -116,6 +117,8 @@ int main(int argc, char* argv[]){
    const double solar_spin_period = 27. * 2. * M_PI / 365.;
    const double solar_spin = (2 * M_PI) / solar_spin_period;
    rebx_set_param_vec3d(rebx, &sim->particles[0].ap, "Omega", (struct reb_vec3d){.y=solar_spin}); // Omega_x = Omega_y = 0 by default
+
+   // Tides on host star - UNCOMMENT FOR CASES 4,5
    //rebx_set_param_double(rebx, &sim->particles[0].ap, "tau", 1./(2.*1000000.*orb.n));
 
    // Planets
@@ -123,6 +126,10 @@ int main(int argc, char* argv[]){
    double tau_p = 712.37 / (86400. * 365.25 * 2 * M_PI); // Bolmont et al 2015, seconds to reb years
    double spin_rate;// = 0.2617 * 24. * 365.25 * 2 * M_PI; // rad/hr to rad/reb years
    for (unsigned int i = 0; i < planets; i++){
+
+     // Spin rate of certain planets
+     // UNCOMMENT FOR CASE 2
+     /*
      if (i == 0){
        spin_rate = 0.173277243 * 24. * 365.25 * 2 * M_PI;
      }
@@ -136,6 +143,9 @@ int main(int argc, char* argv[]){
      }
 
      else{
+     */
+
+     if (1){ // Comment this line out for Case 2
        spin_rate = 0.2617 * 24. * 365.25 * 2 * M_PI;
      }
      rebx_set_param_double(rebx, &sim->particles[i+1].ap, "k2", k2);
@@ -156,10 +166,12 @@ int main(int argc, char* argv[]){
    struct reb_vec3d spin_vec_e = reb_tools_spherical_to_xyz(spin_rate, inc5 - theta_e, 90.0 * M_PI/180.);
    rebx_set_param_vec3d(rebx, &sim->particles[4].ap, "Omega", spin_vec_e);
 
-   // General Relativity
-   //struct rebx_force* gr = rebx_load_force(rebx, "gr");
-   //rebx_add_force(rebx, gr);
-   //rebx_set_param_double(rebx, &gr->ap, "c", 10065.32);
+   // General Relativity - UNCOMMMENT FOR CASES 3, 5
+   /*
+   struct rebx_force* gr = rebx_load_force(rebx, "gr");
+   rebx_add_force(rebx, gr);
+   rebx_set_param_double(rebx, &gr->ap, "c", 10065.32);
+   */
 
    // Let's create a reb_rotation object that rotates to new axes with newz pointing along the total ang. momentum, and x along the line of
    // nodes with the invariable plane (along z cross newz)
@@ -171,6 +183,13 @@ int main(int argc, char* argv[]){
    reb_move_to_com(sim);
    rebx_spin_initialize_ode(rebx, effect);
 
+   FILE* of = fopen(title, "w");
+   fprintf(of, "t,e_sx,e_sy,e_sz");
+   for (unsigned int i = 0; i < planets; i++){
+     fprintf(of, ",a%d,e%d,i%d,Om%d,om%d,f%d", i+1,i+1,i+1,i+1,i+1,i+1); // print spins and orbits
+   }
+   fprintf(of, "\n");
+   fclose(of);
 
    reb_integrate(sim, tmax);
    rebx_free(rebx);
@@ -190,8 +209,8 @@ void heartbeat(struct reb_simulation* sim){
      // Planet e spin vector
      struct reb_particle* e = &sim->particles[4];
      struct reb_vec3d* Omega_e = rebx_get_param(rebx, e->ap, "Omega");
-     fprintf(of, "%f,%f,%f,%f",sim->t, Omega_e->x, Omega_e->y, Omega_e->z);
-
+     fprintf(of, "%e,%f,%f,%f",sim->t, Omega_e->x, Omega_e->y, Omega_e->z);
+     printf("%e,%f,%f,%f",sim->t, Omega_e->x, Omega_e->y, Omega_e->z);
      for (unsigned int i = 0; i < planets; i++){
        struct reb_orbit o = reb_tools_particle_to_orbit(sim->G, sim->particles[i+1], sim->particles[0]);
        fprintf(of, ",%f,%f,%f,%f,%f,%f", o.a, o.e, o.inc, o.Omega, o.omega, o.f); // print spins and orbits
