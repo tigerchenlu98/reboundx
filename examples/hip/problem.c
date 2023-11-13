@@ -99,7 +99,7 @@ int main(int argc, char* argv[]){
     reb_simulation_irotate(rebx, rot);
 
     FILE* of = fopen(title, "w");
-    fprintf(of, "t,nx,ny,nz\n");
+    fprintf(of, "t,nx\n");
     fclose(of);
 
     tmax = 1e5 * 2 * M_PI;
