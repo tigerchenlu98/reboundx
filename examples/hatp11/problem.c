@@ -14,9 +14,9 @@ double obl(struct reb_vec3d v1, struct reb_vec3d v2){
   return acos(reb_vec3d_dot(v1,v2) / (sqrt(reb_vec3d_length_squared(v1)) * sqrt(reb_vec3d_length_squared(v2))));
 }
 
-char title[100] = "test_";
-char title_stats[100] = "zlk_1112/final_stats_real_Q";
-char title_remove[100] = "rm -v test_";
+char title[100] = "~/palmer_scratch/zlk_1130/test_";
+char title_stats[100] = "zlk1130_stats";
+char title_remove[100] = "~rm -v ~/palmer_scratch/zlk_1130/test_";
 int ind;
 int printed_stats=1;
 
