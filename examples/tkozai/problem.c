@@ -20,12 +20,12 @@
  #include "tides_spin.c"
 
 void heartbeat(struct reb_simulation* r);
-double tmax = 1e7 * 2 * M_PI;
+double tmax = 1e8 * 2 * M_PI;
 clock_t begin;
 clock_t end;
 double e_init;
-char title[100] = "ias15_tides";
-char title_remove[100] = "rm -rf ias15_tides";
+char title[100] = "ias15_nt";
+char title_remove[100] = "rm -rf ias15_nt";
 
 double obl(struct reb_vec3d v1, struct reb_vec3d v2){
   return acos(reb_vec3d_dot(v1,v2) / (sqrt(reb_vec3d_length_squared(v1)) * sqrt(reb_vec3d_length_squared(v2))));
@@ -35,9 +35,9 @@ int main(int argc, char* argv[]){
     struct reb_simulation* sim = reb_simulation_create();
     // Setup constants
     //sim->dt             = 2*M_PI*1.;     // initial timestep
-    sim->integrator        = REB_INTEGRATOR_TRACE;
-    //sim->ri_ias15.adaptive_mode = 2;
-    sim->heartbeat        = heartbeat;
+    sim->integrator        = REB_INTEGRATOR_IAS15;
+    sim->ri_ias15.adaptive_mode = 2;
+    //sim->heartbeat        = heartbeat;
 
     // Initial conditions
 
@@ -53,7 +53,7 @@ int main(int argc, char* argv[]){
     reb_simulation_add_fmt(sim, "m r a e", planet_m, planet_r, planet_a, planet_e);
 
     struct reb_orbit o = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
-    sim->dt = o.P/20.12345;
+    //sim->dt = o.P/20.12345;
     sim->exact_finish_time=0;
 
     // The perturber
@@ -63,8 +63,10 @@ int main(int argc, char* argv[]){
     double perturber_e = 0.5;
     reb_simulation_add_fmt(sim, "m a e inc", perturber_mass, perturber_a, perturber_e, perturber_inc);
 
+    // Comment out for tides_spin
+    // ------------------------------------------------------------------------------
+    /*
     struct rebx_extras* rebx = rebx_attach(sim);
-
     struct rebx_force* effect = rebx_load_force(rebx, "tides_spin");
     rebx_add_force(rebx, effect);
 
@@ -101,28 +103,32 @@ int main(int argc, char* argv[]){
     // add GR:
     struct rebx_force* gr = rebx_load_force(rebx, "gr");
     rebx_add_force(rebx, gr);
-
     rebx_set_param_double(rebx, &gr->ap, "c", 10065.32); // in default units
+    struct reb_vec3d newz = reb_vec3d_add(reb_simulation_angular_momentum(sim), rebx_tools_spin_angular_momentum(rebx));
+    */
+    // ------------------------------------------------------------------------------------------------------
     reb_simulation_move_to_com(sim);
 
-    struct reb_vec3d newz = reb_vec3d_add(reb_simulation_angular_momentum(sim), rebx_tools_spin_angular_momentum(rebx));
-    //struct reb_vec3d newz = reb_simulation_angular_momentum(sim);
+    struct reb_vec3d newz = reb_simulation_angular_momentum(sim);
     struct reb_vec3d newx = reb_vec3d_cross((struct reb_vec3d){.z =1}, newz);
     struct reb_rotation rot = reb_rotation_init_to_new_axes(newz, newx);
-    rebx_simulation_irotate(rebx, rot); // This rotates our simulation into the invariable plane aligned with the total ang. momentum (including spin)
-    //reb_simulation_irotate(sim, rot);
+    //rebx_simulation_irotate(rebx, rot); // This rotates our simulation into the invariable plane aligned with the total ang. momentum (including spin)
+    reb_simulation_irotate(sim, rot);
 
-    rebx_spin_initialize_ode(rebx, effect);
+    // AND THIS FOR TIDES_SPIN
+    //rebx_spin_initialize_ode(rebx, effect);
 
     system(title_remove);
     FILE* f = fopen(title,"w");
     fprintf(f, "t,a1,i1,e1,p_ob,a2,i2,e2,pert_ob,mi,theta_p,time_spent\n");
+    fclose(f);
     //fprintf(f, "t,a1,i1,e1,a2,i2,e2,mi,time_spent\n");
 
     begin = clock();
     e_init = reb_simulation_energy(sim);
 
     while (sim->t < tmax){
+      FILE* f = fopen(title,"a");
       reb_simulation_integrate(sim, sim->t + 1e5*2*M_PI);
       end = clock();
       double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
@@ -148,15 +154,16 @@ int main(int argc, char* argv[]){
       double Om2 = o2.Omega;
       double pom2 = o2.pomega;
       struct reb_vec3d n2 = o2.hvec;
-      struct reb_vec3d* Omega_sun = rebx_get_param(rebx, sun->ap, "Omega");
+      double mi = obl(n1,n2);
 
-      // Interpret planet spin in the rotating planet frame
-      struct reb_vec3d* Omega_p_inv = rebx_get_param(rebx, p1->ap, "Omega");
+      // Comment this out for tides_spin
+      // -----------------------------------------------------------------------------------------
+      /*
+      struct reb_vec3d* Omega_sun = rebx_get_param(rebx, sun->ap, "Omega");
 
       // mutual inclination
       double p_ob = obl(*Omega_sun, n1);
       double pert_ob = obl(*Omega_sun, n2);
-      double mi = obl(n1,n2);
 
       // Transform spin vector into planet frame, w/ z-axis aligned with orbit normal and x-axis aligned with line of nodes
       struct reb_vec3d line_of_nodes = reb_vec3d_cross((struct reb_vec3d){.z =1}, n1);
@@ -166,20 +173,24 @@ int main(int argc, char* argv[]){
       }
       struct reb_vec3d srot = reb_vec3d_rotate(*Omega_p_inv, rot); // spin vector in the planet's frame
 
-      // Interpret the spin axis in the more natural spherical coordinates
+      // Interpret planet spin in the rotating planet frame
+      struct reb_vec3d* Omega_p_inv = rebx_get_param(rebx, p1->ap, "Omega");
       double mag_p;
       double theta_p;
       double phi_p;
       reb_tools_xyz_to_spherical(srot, &mag_p, &theta_p, &phi_p);
 
       fprintf(f, "%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n", sim->t,a1,i1,e1,p_ob,a2,i2,e2,pert_ob,mi,theta_p,time_spent); // print spins and orbits
-      //fprintf(of, "%f,%e,%f,%f,%f,%f,%f,%f,%f,%f\n", sim->t,fabs((reb_simulation_energy(sim) - e_init) / e_init),a1,i1,e1,a2,i2,e2,mi,time_spent); // print spins and orbits
+      */
+      // --------------------------------------------------------------------------------------------------------------------
+      fprintf(f, "%f,%e,%f,%f,%f,%f,%f,%f,%f,%f\n", sim->t,fabs((reb_simulation_energy(sim) - e_init) / e_init),a1,i1,e1,a2,i2,e2,mi,time_spent); // print spins and orbits
+      fclose(f);
       }
-    fclose(f);
+    //fclose(f);
     end = clock();
     double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("%f\n", time_spent);
-    rebx_free(rebx);
+    //printf("%f\n", time_spent);
+    //rebx_free(rebx);
     reb_simulation_free(sim);
 }
 
