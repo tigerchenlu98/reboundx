@@ -109,7 +109,7 @@ int main(int argc, char* argv[]){
     rebx_set_param_double(rebx, &sim->particles[4].ap, "k2", planet_k2);
     rebx_set_param_double(rebx, &sim->particles[4].ap, "I", 0.25 * mf * rf * rf);
 
-    const double spin_period_p = (10. / 365.) * 2. * M_PI; // days to reb years
+    const double spin_period_p = ((10. / 24.)/ 365.) * 2. * M_PI; // hours to reb years
     const double spin_p = (2. * M_PI) / spin_period_p;
     const double theta_p = 5. * M_PI / 180.;
     const double phi_p = 0. * M_PI / 180;
