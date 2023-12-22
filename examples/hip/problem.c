@@ -112,7 +112,7 @@ int main(int argc, char* argv[]){
     const double spin_period_p = ((10. / 24.)/ 365.) * 2. * M_PI; // hours to reb years
     const double spin_p = (2. * M_PI) / spin_period_p;
     const double theta_p = 5. * M_PI / 180.;
-    const double phi_p = 0. * M_PI / 180;
+    const double phi_p = 180. * M_PI / 180;
     struct reb_vec3d Omega_sv = reb_tools_spherical_to_xyz(spin_p, theta_p, phi_p);
     rebx_set_param_vec3d(rebx, &sim->particles[4].ap, "Omega", Omega_sv);
 
