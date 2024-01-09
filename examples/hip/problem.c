@@ -19,7 +19,7 @@ double me;
 double planet_as[10] = {0.1283,0.2061,0.88,1.06,1.37};
 double planet_aerrs[10] = {1.5e-3, 2.4e-3, 0.01, 0.03, 0.02};
 
-char title[100] = "ob_evolution_";
+char title[100] = "19_ob_evoution_";
 //char title_stats[100] = "stability_stats";
 //char title_remove[100] = "rm -v low_ob_";
 
@@ -109,7 +109,7 @@ int main(int argc, char* argv[]){
     rebx_set_param_double(rebx, &sim->particles[4].ap, "k2", planet_k2);
     rebx_set_param_double(rebx, &sim->particles[4].ap, "I", 0.25 * mf * rf * rf);
 
-    const double spin_period_p = ((10. / 24.)/ 365.) * 2. * M_PI; // hours to reb years
+    const double spin_period_p = ((10. / 24.) / 365.) * 2. * M_PI; // hours to reb years
     const double spin_p = (2. * M_PI) / spin_period_p;
     const double theta_p = 5. * M_PI / 180.;
     const double phi_p = 180. * M_PI / 180;
@@ -132,7 +132,7 @@ int main(int argc, char* argv[]){
     rebx_spin_initialize_ode(rebx, effect);
 
     FILE* of = fopen(title, "w");
-    fprintf(of, "t,magp,thetap,phip\n");
+    fprintf(of, "t,magp,thetap,phip,Omegap\n");
     fclose(of);
 /*
     system(title_remove);
@@ -193,14 +193,14 @@ void heartbeat(struct reb_simulation* sim){
       reb_tools_xyz_to_spherical(srot, &mag_p, &theta_p, &phi_p);
 
       FILE* sf = fopen(title, "a");
-      fprintf(sf, "%f,%f,%f,%f\n",sim->t,mag_p,theta_p,phi_p);
+      fprintf(sf, "%f,%f,%f,%f,%f\n",sim->t,mag_p,theta_p,phi_p,o1.Omega);
       fclose(sf);
 
 
     }
 
 
-    if(reb_simulation_output_check(sim, 10.)){        // outputs to the screen
-        reb_simulation_output_timing(sim, tmax);
-    }
+    //if(reb_simulation_output_check(sim, 10.)){        // outputs to the screen
+    //    reb_simulation_output_timing(sim, tmax);
+    //}
 }
