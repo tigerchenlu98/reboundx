@@ -29,10 +29,12 @@ int main(int argc, char* argv[]){
     sim->heartbeat          = heartbeat;
 
     ind = 0;
-    if (argc == 2){
-      strcat(title, argv[1]);
+    double ob = 0;
+    if (argc == 3){
+      strcat(title, argv[2]);
       //strcat(title_remove, argv[1]);
       ind = atoi(argv[1]);
+      ob = atoi(argv[2]);
     }
 
     sim->rand_seed = ind;
@@ -111,7 +113,7 @@ int main(int argc, char* argv[]){
 
     const double spin_period_p = ((10. / 24.) / 365.) * 2. * M_PI; // hours to reb years
     const double spin_p = (2. * M_PI) / spin_period_p;
-    const double theta_p = 5. * M_PI / 180.;
+    const double theta_p = ob * M_PI / 180.;
     const double phi_p = 180. * M_PI / 180;
     struct reb_vec3d Omega_sv = reb_tools_spherical_to_xyz(spin_p, theta_p, phi_p);
     rebx_set_param_vec3d(rebx, &sim->particles[4].ap, "Omega", Omega_sv);
