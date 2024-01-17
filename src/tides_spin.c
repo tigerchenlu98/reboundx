@@ -146,6 +146,13 @@ struct reb_vec3d rebx_calculate_spin_orbit_accelerations(struct reb_particle* so
   return tot_force;
 }
 
+double rebx_calculate_rdot(struct reb_particle* source, struct reb_particle* target, const double G, const struct reb_vec3d Omega){
+  const double ms = source->m;
+  const double mt = target->m;
+  const double mtot = ms + mt;
+  const double Rt = target->r;
+}
+
 static void rebx_spin_orbit_accelerations(struct reb_particle* source, struct reb_particle* target, const double G, const double k2, const double sigma, const struct reb_vec3d Omega){
 
     // Input params all associated with source
@@ -205,7 +212,7 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
 
                 double I_specific;
                 if (mi == 0){ // If test particle, assume I = specific moment of inertia
-                    I_specific = *I;  
+                    I_specific = *I;
                 }
                 else{
                   mu_ij = (mi * mj) / (mi + mj);
