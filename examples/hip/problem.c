@@ -54,25 +54,25 @@ int main(int argc, char* argv[]){
     double mb = 6.89 * mearth;
     double eb = 0.07;
     double ab = 0.1283;
-    double ib = reb_random_rayleigh(sim, ri);
+    double ib = 0;//reb_random_rayleigh(sim, ri);
     double Mb = 0;//reb_random_uniform(sim, 0, 2 * M_PI);
 
     double mc = 4.4 * mearth;
     double ec = 0.04;
     double ac = 0.2061;
-    double ic = reb_random_rayleigh(sim, ri);
+    double ic = 0;//reb_random_rayleigh(sim, ri);
     double Mc = 0;//reb_random_uniform(sim, 0, 2 * M_PI);
 
     double md = 1.0 * mearth;
     double ed = 0.06;
     double ad = 0.88;
-    double id = reb_random_rayleigh(sim, ri);
+    double id = 0;//reb_random_rayleigh(sim, ri);
     double Md = 0;//reb_random_uniform(sim, 0, 2 * M_PI);
 
     me = reb_random_uniform(sim, 12. - 5., 9.) * mearth;
     double ee = 0.14;
     double ae = 1.06;//reb_random_uniform(sim, 1.06 - 0.02, 1.06 + 0.03);
-    double ie = reb_random_rayleigh(sim, ri);
+    double ie = 0;//reb_random_rayleigh(sim, ri);
     double Me = 0;//reb_random_uniform(sim, 0, 2 * M_PI);
 
     // This is the one we care abotu
@@ -81,7 +81,7 @@ int main(int argc, char* argv[]){
     double rf = pow(((3. * mf) / (4. * M_PI * rho)), 1./3.);
     double ef = 0.004;
     double af = 1.37;//reb_random_uniform(sim, 1.37 - 0.02, 1.37 + 0.02);
-    double incf = reb_random_rayleigh(sim, ri);
+    double incf = 0;//reb_random_rayleigh(sim, ri);
     double Mf = 0;//reb_random_uniform(sim, 0, 2 * M_PI);
 
     //double rhof = 1.0 * pow(1.496e13,3) / (1.989e33); // 1 g/cm^3 to solar masses/AU^3
@@ -160,20 +160,28 @@ int main(int argc, char* argv[]){
     sim->dt = o.P / 15.12345;
     reb_simulation_integrate(sim, tmax);
 
+    struct reb_orbit ob = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
+    struct reb_orbit oc = reb_orbit_from_particle(sim->G, sim->particles[2], sim->particles[0]);
+    struct reb_orbit od = reb_orbit_from_particle(sim->G, sim->particles[3], sim->particles[0]);
+    struct reb_orbit oe = reb_orbit_from_particle(sim->G, sim->particles[4], sim->particles[0]);
+    struct reb_orbit of = reb_orbit_from_particle(sim->G, sim->particles[5], sim->particles[0]);
+
     for (unsigned i = 0; i < 5; i++){
       struct reb_orbit orb = reb_orbit_from_particle(sim->G, sim->particles[i+1], sim->particles[0]);
       if (fabs(orb.a - planet_as[i])/planet_as[i] > 0.1){
-        struct reb_orbit ob = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
-        struct reb_orbit oc = reb_orbit_from_particle(sim->G, sim->particles[2], sim->particles[0]);
-        struct reb_orbit od = reb_orbit_from_particle(sim->G, sim->particles[3], sim->particles[0]);
-        struct reb_orbit oe = reb_orbit_from_particle(sim->G, sim->particles[4], sim->particles[0]);
-        struct reb_orbit of = reb_orbit_from_particle(sim->G, sim->particles[5], sim->particles[0]);
         FILE* sf = fopen(title_stats, "a");
-        fprintf(sf, "# Unstable %d %f %f %f %f %f\n", ind, ob.a, oc.a, od.a, oe.a, of.a);
+        fprintf(sf, "Unstable %d %f %f %f %f %f\n", ind, ob.a, oc.a, od.a, oe.a, of.a);
         fclose(sf);
+        stable = 0;
         //system(title_remove);
         break;
       }
+    }
+
+    if (stable){
+      FILE* sf = fopen(title_stats, "a");
+      fprintf(sf, "Stable %d %f %f %f %f %f\n", ind, ob.a, oc.a, od.a, oe.a, of.a);
+      fclose(sf);
     }
 
 /*
