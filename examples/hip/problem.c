@@ -19,14 +19,14 @@ double me;
 double planet_as[10] = {0.1283,0.2061,0.88,1.06,1.37};
 double planet_aerrs[10] = {1.5e-3, 2.4e-3, 0.01, 0.03, 0.02};
 
-char title[100] = "migration_test";
+char title[100] = "118_test";
 char title_stats[100] = "stability_stats";
-char title_remove[100] = "rm -v migration_test";
+char title_remove[100] = "rm -v 118_test";
 
 int main(int argc, char* argv[]){
     struct reb_simulation* sim = reb_simulation_create();
     sim->integrator         = REB_INTEGRATOR_WHFAST;
-    //sim->heartbeat          = heartbeat;
+    sim->heartbeat          = heartbeat;
 
     ind = 0;
     //double ob = 0;
@@ -151,19 +151,19 @@ int main(int argc, char* argv[]){
     reb_simulation_move_to_com(sim);
 
     system(title_remove);
-    //FILE* of = fopen(title, "w");
-    //fprintf(of, "t,inc,Omega,nx\n");
+    FILE* of = fopen(title, "w");
+    fprintf(of, "t,inc,Omega,nx\n");
     //for (unsigned int i = 0; i < ntest; i++){
     //fprintf(of, ",at,it");
     //}
     //fprintf(of, "\n");
-    //fclose(of);
+    fclose(of);
 
     struct reb_orbit o = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
     tmax = 1e4*2*M_PI;//o.P * 1e8;
     sim->dt = o.P / 20.12345;
     reb_simulation_integrate(sim, tmax);
-
+/*
     struct reb_orbit ob = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
     struct reb_orbit oc = reb_orbit_from_particle(sim->G, sim->particles[2], sim->particles[0]);
     struct reb_orbit od = reb_orbit_from_particle(sim->G, sim->particles[3], sim->particles[0]);
@@ -187,7 +187,7 @@ int main(int argc, char* argv[]){
       fprintf(sf, "Stable %d %f %f %f %f %f\n", ind, ob.a, oc.a, od.a, oe.a, orf.a);
       fclose(sf);
     }
-
+*/
 /*
     FILE* sf = fopen(title_stats, "a");
     fprintf(sf, "%d,%f,%f,%d\n",ind,me,mf,1);
