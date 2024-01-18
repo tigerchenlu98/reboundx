@@ -29,7 +29,7 @@ int main(int argc, char* argv[]){
     //sim->heartbeat          = heartbeat;
 
     ind = 0;
-    double ob = 0;
+    //double ob = 0;
     if (argc == 2){
       strcat(title, argv[1]);
       strcat(title_remove, argv[1]);
@@ -164,13 +164,13 @@ int main(int argc, char* argv[]){
     struct reb_orbit oc = reb_orbit_from_particle(sim->G, sim->particles[2], sim->particles[0]);
     struct reb_orbit od = reb_orbit_from_particle(sim->G, sim->particles[3], sim->particles[0]);
     struct reb_orbit oe = reb_orbit_from_particle(sim->G, sim->particles[4], sim->particles[0]);
-    struct reb_orbit of = reb_orbit_from_particle(sim->G, sim->particles[5], sim->particles[0]);
+    struct reb_orbit orf = reb_orbit_from_particle(sim->G, sim->particles[5], sim->particles[0]);
 
     for (unsigned i = 0; i < 5; i++){
       struct reb_orbit orb = reb_orbit_from_particle(sim->G, sim->particles[i+1], sim->particles[0]);
       if (fabs(orb.a - planet_as[i])/planet_as[i] > 0.1){
         FILE* sf = fopen(title_stats, "a");
-        fprintf(sf, "Unstable %d %f %f %f %f %f\n", ind, ob.a, oc.a, od.a, oe.a, of.a);
+        fprintf(sf, "Unstable %d %f %f %f %f %f\n", ind, ob.a, oc.a, od.a, oe.a, orf.a);
         fclose(sf);
         stable = 0;
         //system(title_remove);
@@ -180,7 +180,7 @@ int main(int argc, char* argv[]){
 
     if (stable){
       FILE* sf = fopen(title_stats, "a");
-      fprintf(sf, "Stable %d %f %f %f %f %f\n", ind, ob.a, oc.a, od.a, oe.a, of.a);
+      fprintf(sf, "Stable %d %f %f %f %f %f\n", ind, ob.a, oc.a, od.a, oe.a, orf.a);
       fclose(sf);
     }
 
