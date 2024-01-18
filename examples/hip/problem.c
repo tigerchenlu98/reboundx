@@ -54,25 +54,25 @@ int main(int argc, char* argv[]){
     double mb = 6.89 * mearth;
     double eb = 0.07;
     double ab = 0.1283;
-    double ib = 0;//reb_random_rayleigh(sim, ri);
+    double ib = reb_random_rayleigh(sim, ri);
     double Mb = 0;//reb_random_uniform(sim, 0, 2 * M_PI);
 
     double mc = 4.4 * mearth;
     double ec = 0.04;
     double ac = 0.2061;
-    double ic = 0;//reb_random_rayleigh(sim, ri);
+    double ic = reb_random_rayleigh(sim, ri);
     double Mc = 0;//reb_random_uniform(sim, 0, 2 * M_PI);
 
     double md = 1.0 * mearth;
     double ed = 0.06;
     double ad = 0.88;
-    double id = 0;//reb_random_rayleigh(sim, ri);
+    double id = reb_random_rayleigh(sim, ri);
     double Md = 0;//reb_random_uniform(sim, 0, 2 * M_PI);
 
     me = reb_random_uniform(sim, 12. - 5., 9.) * mearth;
     double ee = 0.14;
     double ae = 1.06;//reb_random_uniform(sim, 1.06 - 0.02, 1.06 + 0.03);
-    double ie = 0;//reb_random_rayleigh(sim, ri);
+    double ie = reb_random_rayleigh(sim, ri);
     double Me = 0;//reb_random_uniform(sim, 0, 2 * M_PI);
 
     // This is the one we care abotu
@@ -81,7 +81,7 @@ int main(int argc, char* argv[]){
     double rf = pow(((3. * mf) / (4. * M_PI * rho)), 1./3.);
     double ef = 0.004;
     double af = 1.37;//reb_random_uniform(sim, 1.37 - 0.02, 1.37 + 0.02);
-    double incf = 0;//reb_random_rayleigh(sim, ri);
+    double incf = reb_random_rayleigh(sim, ri);
     double Mf = 0;//reb_random_uniform(sim, 0, 2 * M_PI);
 
     //double rhof = 1.0 * pow(1.496e13,3) / (1.989e33); // 1 g/cm^3 to solar masses/AU^3
@@ -156,8 +156,8 @@ int main(int argc, char* argv[]){
     fclose(of);
 
     struct reb_orbit o = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
-    tmax = 1e5*2*M_PI;//o.P * 1e8;
-    sim->dt = o.P / 15.12345;
+    tmax = 1e4*2*M_PI;//o.P * 1e8;
+    sim->dt = o.P / 20.12345;
     reb_simulation_integrate(sim, tmax);
 
     struct reb_orbit ob = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
@@ -196,7 +196,7 @@ int main(int argc, char* argv[]){
 void heartbeat(struct reb_simulation* sim){
     // Output spin and orbital information to file
 
-    if(reb_simulation_output_check(sim, 10. * 2 * M_PI)){        // outputs every 10 REBOUND years
+    if(reb_simulation_output_check(sim, 1. * 2 * M_PI)){        // outputs every 10 REBOUND years
       struct rebx_extras* const rebx = sim->extras;
       struct reb_particle* sun = &sim->particles[0];
       struct reb_particle* planet = &sim->particles[5];
