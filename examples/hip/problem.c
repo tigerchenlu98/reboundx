@@ -148,15 +148,16 @@ int main(int argc, char* argv[]){
     fclose(of);
 
     struct reb_orbit o = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
-    tmax = 1e5*2*M_PI;//o.P * 1e8;
+    tmax = 1e6*2*M_PI;//o.P * 1e8;
     sim->dt = o.P / 15.12345;
     reb_simulation_integrate(sim, tmax);
 
     for (unsigned i = 0; i < 5; i++){
       struct reb_orbit orb = reb_orbit_from_particle(sim->G, sim->particles[i+1], sim->particles[0]);
       if (fabs(orb.a - planet_as[i])/planet_as[i] > 0.1){
-        fprintf("# Unstable %d %f\n", i+1,orb.a);
-        stable=0;
+        FILE* sf = fopen(title_stats, "a");
+        fprintf(sf, "# Unstable %d\n", ind);
+        fclose(sf);
         //system(title_remove);
         break;
       }
