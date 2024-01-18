@@ -20,7 +20,7 @@ double planet_as[10] = {0.1283,0.2061,0.88,1.06,1.37};
 double planet_aerrs[10] = {1.5e-3, 2.4e-3, 0.01, 0.03, 0.02};
 
 char title[100] = "117_ob_evoution_";
-//char title_stats[100] = "stability_stats";
+char title_stats[100] = "stability_stats";
 char title_remove[100] = "rm -v 117_ob_evoution_";
 
 int main(int argc, char* argv[]){
@@ -137,6 +137,14 @@ int main(int argc, char* argv[]){
     //FILE* of = fopen(title, "w");
     //fprintf(of, "t,magp,thetap,phip,Omegap\n");
     //fclose(of);
+
+    struct reb_vec3d newz = reb_simulation_angular_momentum(sim);
+    struct reb_vec3d newx = reb_vec3d_cross((struct reb_vec3d){.z =1}, newz);
+    struct reb_rotation rot = reb_rotation_init_to_new_axes(newz, newx);
+    if (isnan(rot.r)) {
+      rot = reb_rotation_identity();
+    }
+    reb_simulation_irotate(sim, rot);
 
     system(title_remove);
     FILE* of = fopen(title, "w");
