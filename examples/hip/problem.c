@@ -19,14 +19,14 @@ double me;
 double planet_as[10] = {0.1283,0.2061,0.88,1.06,1.37};
 double planet_aerrs[10] = {1.5e-3, 2.4e-3, 0.01, 0.03, 0.02};
 
-char title[100] = "117_ob_evoution_";
+char title[100] = "117_ob_evolution_";
 char title_stats[100] = "stability_stats";
 char title_remove[100] = "rm -v 117_ob_evoution_";
 
 int main(int argc, char* argv[]){
     struct reb_simulation* sim = reb_simulation_create();
     sim->integrator         = REB_INTEGRATOR_WHFAST;
-    sim->heartbeat          = heartbeat;
+    //sim->heartbeat          = heartbeat;
 
     ind = 0;
     double ob = 0;
@@ -156,15 +156,20 @@ int main(int argc, char* argv[]){
     fclose(of);
 
     struct reb_orbit o = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
-    tmax = 1e6*2*M_PI;//o.P * 1e8;
+    tmax = 1e5*2*M_PI;//o.P * 1e8;
     sim->dt = o.P / 15.12345;
     reb_simulation_integrate(sim, tmax);
 
     for (unsigned i = 0; i < 5; i++){
       struct reb_orbit orb = reb_orbit_from_particle(sim->G, sim->particles[i+1], sim->particles[0]);
       if (fabs(orb.a - planet_as[i])/planet_as[i] > 0.1){
+        struct reb_orbit ob = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
+        struct reb_orbit oc = reb_orbit_from_particle(sim->G, sim->particles[2], sim->particles[0]);
+        struct reb_orbit od = reb_orbit_from_particle(sim->G, sim->particles[3], sim->particles[0]);
+        struct reb_orbit oe = reb_orbit_from_particle(sim->G, sim->particles[4], sim->particles[0]);
+        struct reb_orbit of = reb_orbit_from_particle(sim->G, sim->particles[5], sim->particles[0]);
         FILE* sf = fopen(title_stats, "a");
-        fprintf(sf, "# Unstable %d\n", ind);
+        fprintf(sf, "# Unstable %d %f %f %f %f %f\n", ind, ob.a, oc.a, od.a, oe.a, of.a);
         fclose(sf);
         //system(title_remove);
         break;
