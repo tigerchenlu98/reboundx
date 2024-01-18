@@ -56,28 +56,28 @@ int main(int argc, char* argv[]){
     double ab = 0.1283;
     double ib = reb_random_rayleigh(sim, ri);
     double tb = reb_random_uniform(sim, 0, 2 * M_PI);
-    double Mb = reb_random_uniform(sim, 0, 2 * M_PI);
+    //double Mb = reb_random_uniform(sim, 0, 2 * M_PI);
 
     double mc = 4.4 * mearth;
     double ec = 0.04;
     double ac = 0.2061;
     double ic = reb_random_rayleigh(sim, ri);
     double tc = reb_random_uniform(sim, 0, 2 * M_PI);
-    double Mc = reb_random_uniform(sim, 0, 2 * M_PI);
+    //double Mc = reb_random_uniform(sim, 0, 2 * M_PI);
 
     double md = 1.0 * mearth;
     double ed = 0.06;
     double ad = 0.88;
     double id = reb_random_rayleigh(sim, ri);
     double td = reb_random_uniform(sim, 0, 2 * M_PI);
-    double Md = reb_random_uniform(sim, 0, 2 * M_PI);
+    //double Md = reb_random_uniform(sim, 0, 2 * M_PI);
 
     me = reb_random_uniform(sim, 12. - 5., 9.) * mearth;
     double ee = 0.14;
     double ae = 1.06;//reb_random_uniform(sim, 1.06 - 0.02, 1.06 + 0.03);
     double ie = reb_random_rayleigh(sim, ri);
     double te = reb_random_uniform(sim, 0, 2 * M_PI);
-    double Me = reb_random_uniform(sim, 0, 2 * M_PI);
+    //double Me = reb_random_uniform(sim, 0, 2 * M_PI);
 
     // This is the one we care abotu
     mf = reb_random_uniform(sim, 9., 12.5) * mearth;
@@ -87,18 +87,18 @@ int main(int argc, char* argv[]){
     double af = 1.37;//reb_random_uniform(sim, 1.37 - 0.02, 1.37 + 0.02);
     double incf = reb_random_rayleigh(sim, ri);
     double tf = reb_random_uniform(sim, 0, 2 * M_PI);
-    double Mf = reb_random_uniform(sim, 0, 2 * M_PI);
+    //double Mf = reb_random_uniform(sim, 0, 2 * M_PI);
 
     //double rhof = 1.0 * pow(1.496e13,3) / (1.989e33); // 1 g/cm^3 to solar masses/AU^3
     //rf =  pow((3 * mf / (4 * M_PI * rhof)), 1./3.);
 
     double planet_as[10] = {ab, ac, ad, ae, af};
 
-    reb_simulation_add_fmt(sim, "primary m a e inc theta M", star, mb, ab, eb, ib, tb, Mb);
-    reb_simulation_add_fmt(sim, "primary m a e inc theta M", star, mc, ac, ec, ic, tc, Mc);
-    reb_simulation_add_fmt(sim, "primary m a e inc theta M", star, md, ad, ed, id, td, Md);
-    reb_simulation_add_fmt(sim, "primary m a e inc theta M", star, me, ae, ee, ie, te, Me);
-    reb_simulation_add_fmt(sim, "primary m r a e inc theta M", star, mf, rf, af, ef, incf, tf, Mf);
+    reb_simulation_add_fmt(sim, "primary m a e inc theta", star, mb, ab, eb, ib, tb);
+    reb_simulation_add_fmt(sim, "primary m a e inc theta", star, mc, ac, ec, ic, tc);
+    reb_simulation_add_fmt(sim, "primary m a e inc theta", star, md, ad, ed, id, td);
+    reb_simulation_add_fmt(sim, "primary m a e inc theta", star, me, ae, ee, ie, te);
+    reb_simulation_add_fmt(sim, "primary m r a e inc theta", star, mf, rf, af, ef, incf, tf);
 
     //double rin = 1.5 * rf;
     //double rho_ring = 0.5;
@@ -151,13 +151,13 @@ int main(int argc, char* argv[]){
     reb_simulation_move_to_com(sim);
 
     system(title_remove);
-    FILE* of = fopen(title, "w");
-    fprintf(of, "t,inc,Omega,nx\n");
+    //FILE* of = fopen(title, "w");
+    //fprintf(of, "t,inc,Omega,nx\n");
     //for (unsigned int i = 0; i < ntest; i++){
     //fprintf(of, ",at,it");
     //}
     //fprintf(of, "\n");
-    fclose(of);
+    //fclose(of);
 
     struct reb_orbit o = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
     tmax = 1e4*2*M_PI;//o.P * 1e8;
