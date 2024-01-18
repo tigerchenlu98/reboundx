@@ -19,9 +19,9 @@ double me;
 double planet_as[10] = {0.1283,0.2061,0.88,1.06,1.37};
 double planet_aerrs[10] = {1.5e-3, 2.4e-3, 0.01, 0.03, 0.02};
 
-char title[100] = "117_ob_evolution_";
+char title[100] = "migration_test";
 char title_stats[100] = "stability_stats";
-char title_remove[100] = "rm -v 117_ob_evoution_";
+char title_remove[100] = "rm -v migration_test";
 
 int main(int argc, char* argv[]){
     struct reb_simulation* sim = reb_simulation_create();
@@ -55,25 +55,25 @@ int main(int argc, char* argv[]){
     double eb = 0.07;
     double ab = 0.1283;
     double ib = reb_random_rayleigh(sim, ri);
-    double Mb = 0;//reb_random_uniform(sim, 0, 2 * M_PI);
+    double tb = reb_random_uniform(sim, 0, 2 * M_PI);
 
     double mc = 4.4 * mearth;
     double ec = 0.04;
     double ac = 0.2061;
     double ic = reb_random_rayleigh(sim, ri);
-    double Mc = 0;//reb_random_uniform(sim, 0, 2 * M_PI);
+    double tc = reb_random_uniform(sim, 0, 2 * M_PI);
 
     double md = 1.0 * mearth;
     double ed = 0.06;
     double ad = 0.88;
     double id = reb_random_rayleigh(sim, ri);
-    double Md = 0;//reb_random_uniform(sim, 0, 2 * M_PI);
+    double td = reb_random_uniform(sim, 0, 2 * M_PI);
 
     me = reb_random_uniform(sim, 12. - 5., 9.) * mearth;
     double ee = 0.14;
     double ae = 1.06;//reb_random_uniform(sim, 1.06 - 0.02, 1.06 + 0.03);
     double ie = reb_random_rayleigh(sim, ri);
-    double Me = 0;//reb_random_uniform(sim, 0, 2 * M_PI);
+    double te = reb_random_uniform(sim, 0, 2 * M_PI);
 
     // This is the one we care abotu
     mf = reb_random_uniform(sim, 9., 12.5) * mearth;
@@ -82,18 +82,18 @@ int main(int argc, char* argv[]){
     double ef = 0.004;
     double af = 1.37;//reb_random_uniform(sim, 1.37 - 0.02, 1.37 + 0.02);
     double incf = reb_random_rayleigh(sim, ri);
-    double Mf = 0;//reb_random_uniform(sim, 0, 2 * M_PI);
+    double tf = reb_random_uniform(sim, 0, 2 * M_PI);
 
     //double rhof = 1.0 * pow(1.496e13,3) / (1.989e33); // 1 g/cm^3 to solar masses/AU^3
     //rf =  pow((3 * mf / (4 * M_PI * rhof)), 1./3.);
 
     double planet_as[10] = {ab, ac, ad, ae, af};
 
-    reb_simulation_add_fmt(sim, "primary m a e inc M", star, mb, ab, eb, ib, Mb);
-    reb_simulation_add_fmt(sim, "primary m a e inc M", star, mc, ac, ec, ic, Mc);
-    reb_simulation_add_fmt(sim, "primary m a e inc M", star, md, ad, ed, id, Md);
-    reb_simulation_add_fmt(sim, "primary m a e inc M", star, me, ae, ee, ie, Me);
-    reb_simulation_add_fmt(sim, "primary m r a e inc M", star, mf, rf, af, ef, incf, Mf);
+    reb_simulation_add_fmt(sim, "primary m a e inc theta", star, mb, ab, eb, ib, Mb);
+    reb_simulation_add_fmt(sim, "primary m a e inc theta", star, mc, ac, ec, ic, Mc);
+    reb_simulation_add_fmt(sim, "primary m a e inc theta", star, md, ad, ed, id, Md);
+    reb_simulation_add_fmt(sim, "primary m a e inc theta", star, me, ae, ee, ie, Me);
+    reb_simulation_add_fmt(sim, "primary m r a e inc theta", star, mf, rf, af, ef, incf, Mf);
 
     //double rin = 1.5 * rf;
     //double rho_ring = 0.5;
