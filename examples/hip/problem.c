@@ -19,9 +19,9 @@ double me;
 double planet_as[10] = {0.1283,0.2061,0.88,1.06,1.37};
 double planet_aerrs[10] = {1.5e-3, 2.4e-3, 0.01, 0.03, 0.02};
 
-char title[100] = "118_test";
-char title_stats[100] = "stability_stats";
-char title_remove[100] = "rm -v 118_test";
+char title[100] = "mt_";
+char title_stats[100] = "migration_stats";
+char title_remove[100] = "rm -v mt_";
 
 int main(int argc, char* argv[]){
     struct reb_simulation* sim = reb_simulation_create();
@@ -30,6 +30,7 @@ int main(int argc, char* argv[]){
 
     ind = 0;
     //double ob = 0;
+    double delta = 1.02;
     if (argc == 2){
       strcat(title, argv[1]);
       strcat(title_remove, argv[1]);
@@ -67,14 +68,14 @@ int main(int argc, char* argv[]){
 
     double md = 1.0 * mearth;
     double ed = 0.06;
-    double ad = 0.88;
+    double ad = 0.88 * 1.1;
     double id = reb_random_rayleigh(sim, ri);
     double td = reb_random_uniform(sim, 0, 2 * M_PI);
     //double Md = reb_random_uniform(sim, 0, 2 * M_PI);
 
     me = reb_random_uniform(sim, 12. - 5., 9.) * mearth;
     double ee = 0.14;
-    double ae = 1.06;//reb_random_uniform(sim, 1.06 - 0.02, 1.06 + 0.03);
+    double ae = ad * pow(4./3., 2./3.) * delta;//1.06;//reb_random_uniform(sim, 1.06 - 0.02, 1.06 + 0.03);
     double ie = reb_random_rayleigh(sim, ri);
     double te = reb_random_uniform(sim, 0, 2 * M_PI);
     //double Me = reb_random_uniform(sim, 0, 2 * M_PI);
@@ -84,7 +85,7 @@ int main(int argc, char* argv[]){
     double rho = 1.0 * pow(1.496e13, 3.) / (1.989e33); // 1 g/cm3 to rebound units
     double rf = pow(((3. * mf) / (4. * M_PI * rho)), 1./3.);
     double ef = 0.004;
-    double af = 1.37;//reb_random_uniform(sim, 1.37 - 0.02, 1.37 + 0.02);
+    double af = ae * pow(3./2.,2./3.) * delta;//1.37;//reb_random_uniform(sim, 1.37 - 0.02, 1.37 + 0.02);
     double incf = reb_random_rayleigh(sim, ri);
     double tf = reb_random_uniform(sim, 0, 2 * M_PI);
     //double Mf = reb_random_uniform(sim, 0, 2 * M_PI);
@@ -106,26 +107,31 @@ int main(int argc, char* argv[]){
     //for (unsigned int i = 0; i < ntest; i++){
     //reb_add_fmt(sim, "primary a inc Omega", sim->particles[2], rout, 30.*M_PI/180.);
     //}
-/*
+
     // tides_spin
     struct rebx_extras* rebx = rebx_attach(sim);
+    struct rebx_force* mof = rebx_load_force(rebx, "modify_orbits_forces");
+    rebx_add_force(rebx, mof);
+    double tau_a = -1e6 * 2 * M_PI;
+    rebx_set_param_double(rebx, &sim->particles[5].ap, "tau_a", tau_a);
+
     struct rebx_force* effect = rebx_load_force(rebx, "tides_spin");
     rebx_add_force(rebx, effect);
 
     double planet_k2 = 0.6;
-    rebx_set_param_double(rebx, &sim->particles[4].ap, "k2", planet_k2);
-    rebx_set_param_double(rebx, &sim->particles[4].ap, "I", 0.25 * mf * rf * rf);
+    rebx_set_param_double(rebx, &sim->particles[5].ap, "k2", planet_k2);
+    rebx_set_param_double(rebx, &sim->particles[5].ap, "I", 0.25 * mf * rf * rf);
 
     const double spin_period_p = ((10. / 24.) / 365.) * 2. * M_PI; // hours to reb years
     const double spin_p = (2. * M_PI) / spin_period_p;
-    const double theta_p = ob * M_PI / 180.;
+    const double theta_p = 0. * M_PI / 180.;
     const double phi_p = 180. * M_PI / 180;
     struct reb_vec3d Omega_sv = reb_tools_spherical_to_xyz(spin_p, theta_p, phi_p);
-    rebx_set_param_vec3d(rebx, &sim->particles[4].ap, "Omega", Omega_sv);
+    rebx_set_param_vec3d(rebx, &sim->particles[5].ap, "Omega", Omega_sv);
 
     const double planet_Q = 1e5;
     struct reb_orbit orb = reb_orbit_from_particle(sim->G, sim->particles[4], sim->particles[0]);
-    rebx_set_param_double(rebx, &sim->particles[4].ap, "tau", 1./(2.*orb.n*planet_Q));
+    rebx_set_param_double(rebx, &sim->particles[5].ap, "tau", 1./(2.*orb.n*planet_Q));
 
 
     struct reb_vec3d newz = reb_vec3d_add(reb_simulation_angular_momentum(sim), rebx_tools_spin_angular_momentum(rebx));
@@ -134,25 +140,18 @@ int main(int argc, char* argv[]){
     if (isnan(rot.r)) {
       rot = reb_rotation_identity();
     }
+    reb_simulation_move_to_com(sim);
     rebx_simulation_irotate(rebx, rot);
     rebx_spin_initialize_ode(rebx, effect);
-    */
+
     //FILE* of = fopen(title, "w");
     //fprintf(of, "t,magp,thetap,phip,Omegap\n");
     //fclose(of);
 
-    struct reb_vec3d newz = reb_simulation_angular_momentum(sim);
-    struct reb_vec3d newx = reb_vec3d_cross((struct reb_vec3d){.z =1}, newz);
-    struct reb_rotation rot = reb_rotation_init_to_new_axes(newz, newx);
-    if (isnan(rot.r)) {
-      rot = reb_rotation_identity();
-    }
-    reb_simulation_irotate(sim, rot);
-    reb_simulation_move_to_com(sim);
-
     system(title_remove);
     FILE* of = fopen(title, "w");
-    fprintf(of, "t,inc,Omega,nx\n");
+    fprintf(of, "t,mag,theta,phi,ab,ac,ad,ae,af\n");
+    //fprintf(of, "t,inc,Omega,nx\n");
     //for (unsigned int i = 0; i < ntest; i++){
     //fprintf(of, ",at,it");
     //}
@@ -160,10 +159,10 @@ int main(int argc, char* argv[]){
     fclose(of);
 
     struct reb_orbit o = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
-    tmax = 1e4*2*M_PI;//o.P * 1e8;
+    tmax = 2e5*2*M_PI;//o.P * 1e8;
     sim->dt = o.P / 20.12345;
     reb_simulation_integrate(sim, tmax);
-/*
+
     struct reb_orbit ob = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
     struct reb_orbit oc = reb_orbit_from_particle(sim->G, sim->particles[2], sim->particles[0]);
     struct reb_orbit od = reb_orbit_from_particle(sim->G, sim->particles[3], sim->particles[0]);
@@ -172,16 +171,16 @@ int main(int argc, char* argv[]){
 
     for (unsigned i = 0; i < 5; i++){
       struct reb_orbit orb = reb_orbit_from_particle(sim->G, sim->particles[i+1], sim->particles[0]);
-      if (fabs(orb.a - planet_as[i])/planet_as[i] > 0.1){
-        FILE* sf = fopen(title_stats, "a");
-        fprintf(sf, "Unstable %d %f %f %f %f %f\n", ind, ob.a, oc.a, od.a, oe.a, orf.a);
-        fclose(sf);
-        stable = 0;
+      //if (fabs(orb.a - planet_as[i])/planet_as[i] > 0.1){
+      FILE* sf = fopen(title_stats, "a");
+      fprintf(sf, "%d %f %f %f %f %f\n", ind, ob.a, oc.a, od.a, oe.a, orf.a);
+      fclose(sf);
+        //stable = 0;
         //system(title_remove);
-        break;
-      }
+        //break;
+      //}
     }
-
+/*
     if (stable){
       FILE* sf = fopen(title_stats, "a");
       fprintf(sf, "Stable %d %f %f %f %f %f\n", ind, ob.a, oc.a, od.a, oe.a, orf.a);
@@ -205,9 +204,13 @@ void heartbeat(struct reb_simulation* sim){
       struct reb_particle* sun = &sim->particles[0];
       struct reb_particle* planet = &sim->particles[5];
 
-      struct reb_orbit o1 = reb_orbit_from_particle(sim->G, *planet, *sun);
-      struct reb_vec3d n1 = o1.hvec;
-/*
+      struct reb_orbit ob = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
+      struct reb_orbit oc = reb_orbit_from_particle(sim->G, sim->particles[2], sim->particles[0]);
+      struct reb_orbit od = reb_orbit_from_particle(sim->G, sim->particles[3], sim->particles[0]);
+      struct reb_orbit oe = reb_orbit_from_particle(sim->G, sim->particles[4], sim->particles[0]);
+      struct reb_orbit orf = reb_orbit_from_particle(sim->G, sim->particles[5], sim->particles[0]);
+      struct reb_vec3d n1 = orf.hvec;
+
       struct reb_vec3d* Omega_p_inv = rebx_get_param(rebx, planet->ap, "Omega");
       struct reb_vec3d line_of_nodes = reb_vec3d_cross((struct reb_vec3d){.z =1}, n1);
       struct reb_rotation rot = reb_rotation_init_to_new_axes(n1, line_of_nodes); // Arguments to this function are the new z and x axes
@@ -220,17 +223,17 @@ void heartbeat(struct reb_simulation* sim){
       double theta_p;
       double phi_p;
       reb_tools_xyz_to_spherical(srot, &mag_p, &theta_p, &phi_p);
-*/
+
       FILE* sf = fopen(title, "a");
-      //fprintf(sf, "%f,%f,%f,%f,%f\n",sim->t,mag_p,theta_p,phi_p,o1.Omega);
-      fprintf(sf, "%f,%f,%f,%f\n",sim->t,o1.inc,o1.Omega,n1.x);
+      fprintf(sf, "%f,%f,%f,%f,%f,%f,%f,%f,%f\n",sim->t,mag_p,theta_p,phi_p,ob.a,oc.a,od.a,oe.a,orf.a);
+      //fprintf(sf, "%f,%f,%f,%f\n",sim->t,o1.inc,o1.Omega,n1.x);
       fclose(sf);
 
 
     }
 
 
-    //if(reb_simulation_output_check(sim, 10.)){        // outputs to the screen
-    //    reb_simulation_output_timing(sim, tmax);
-    //}
+    if(reb_simulation_output_check(sim, 10.)){        // outputs to the screen
+        reb_simulation_output_timing(sim, tmax);
+    }
 }
