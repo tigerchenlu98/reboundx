@@ -159,7 +159,7 @@ int main(int argc, char* argv[]){
     //fprintf(of, "t,magp,thetap,phip,Omegap\n");
     //fclose(of);
 
-    system(title_remove);
+    //system(title_remove);
     //FILE* of = fopen(title, "w");
     //fprintf(of, "t,mag,theta,phi,sx,sy,sz,ad,ae,af,omega,mf\n");
     //fprintf(of, "t,inc,Omega,nx\n");
@@ -170,7 +170,7 @@ int main(int argc, char* argv[]){
     //fclose(of);
 
     struct reb_orbit o = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
-    tmax = 2e5*2*M_PI;//o.P * 1e8;
+    tmax = 2e6*2*M_PI;//o.P * 1e8;
     sim->dt = o.P / 10.12345;
     reb_simulation_integrate(sim, tmax);
 
