@@ -58,7 +58,7 @@ double laplace_equilibrium(struct reb_simulation* sim, struct rebx_extras* const
 }
 
 int main(int argc, char* argv[]){
-    double ds[21] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0};
+    double ds[18] = {1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0};
 
     struct reb_simulation* sim = reb_simulation_create();
     sim->integrator         = REB_INTEGRATOR_WHFAST;
@@ -134,7 +134,9 @@ int main(int argc, char* argv[]){
     // Laplace radius
     LR = laplace_radius(sim, rebx, &sim->particles[0], &sim->particles[1]);
     // Test particle
-    double d = ds[ind] * LR;
+    double d = ds[ind] * pf.r;
+    printf("%f\n", d/pf.r);
+    exit(1);
     double le_theta = laplace_equilibrium(sim, rebx, &sim->particles[0], &sim->particles[1], d);
 
     //struct reb_orbit of = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
