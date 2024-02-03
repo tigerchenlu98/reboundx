@@ -20,9 +20,9 @@ double me;
 double planet_as[10] = {0.1283,0.2061,0.88,1.06,1.37};
 double planet_aerrs[10] = {1.5e-3, 2.4e-3, 0.01, 0.03, 0.02};
 
-char title[100] = "127mt_";
-char title_stats[100] = "mt_stats";
-char title_remove[100] = "rm -v 127mt_";
+char title[100] = "22mt_";
+char title_stats[100] = "22mt_stats";
+char title_remove[100] = "rm -v 22mt_";
 
 int main(int argc, char* argv[]){
     struct reb_simulation* sim = reb_simulation_create();
@@ -88,7 +88,7 @@ int main(int argc, char* argv[]){
     double rho = 1.0 * pow(1.496e13, 3.) / (1.989e33); // 1 g/cm3 to rebound units
     double rf = pow(((3. * mf) / (4. * M_PI * rho)), 1./3.);
     double ef = 0.004;
-    double af = ae * pow(3./2.,2./3.) * delta2;//1.37;//reb_random_uniform(sim, 1.37 - 0.02, 1.37 + 0.02);
+    double af = ae * pow(3./2.,2./3.) * delta;//1.37;//reb_random_uniform(sim, 1.37 - 0.02, 1.37 + 0.02);
     double incf = reb_random_rayleigh(sim, ri);
     double tf = reb_random_uniform(sim, 0, 2 * M_PI);
     //double Mf = reb_random_uniform(sim, 0, 2 * M_PI);
@@ -131,8 +131,9 @@ int main(int argc, char* argv[]){
     rebx_set_param_vec3d(rebx, &sim->particles[5].ap, "Omega", Omega_sv);
 
     const double planet_Q = 1e5;
-    struct reb_orbit orb = reb_orbit_from_particle(sim->G, sim->particles[5], sim->particles[0]);
-    rebx_set_param_double(rebx, &sim->particles[5].ap, "tau", 1./(2.*orb.n*planet_Q));
+    //struct reb_orbit orb = reb_orbit_from_particle(sim->G, sim->particles[5], sim->particles[0]);
+    double orbn = sqrt(sim->G * (star.m + mf) / (1.37 * 1.37 * 1.37));
+    rebx_set_param_double(rebx, &sim->particles[5].ap, "tau", 1./(2.*orbn*planet_Q));
 
 
     struct reb_vec3d newz = reb_vec3d_add(reb_simulation_angular_momentum(sim), rebx_tools_spin_angular_momentum(rebx));
@@ -160,7 +161,7 @@ int main(int argc, char* argv[]){
     //fclose(of);
 
     struct reb_orbit o = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
-    tmax = 2e6*2*M_PI;//o.P * 1e8;
+    tmax = 5e6*2*M_PI;//o.P * 1e8;
     sim->dt = o.P / 10.12345;
     reb_simulation_integrate(sim, tmax);
 
