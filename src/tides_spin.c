@@ -57,7 +57,7 @@
  * ============================ =========== ==================================================================
  * particles[i].r (float)       Yes         Physical radius (required for contribution from tides raised on the body).
  * k2 (float)                   Yes         Potential Love number of degree 2.
- * Omega (reb_vec3d)            Yes         Angular rotation frequency (Omega_x, Omega_y, Omega_z)
+ * Omega (reb_vec3d)            Yes         Angular rotation frequency
  * I (float)                    No          Moment of inertia (for test particles, assumed to be the specific MoI I/m)
  * tau (float)                  No          Constant time lag. If not set, defaults to 0
  * ============================ =========== ==================================================================
@@ -69,6 +69,58 @@
 #include <stdlib.h>
 #include <float.h>
 #include "reboundx.h"
+#include "rebxtools.h"
+
+// Spin distoration from rotation only
+struct reb_vec3d rebx_calculate_spin_distortion_acceleration(struct reb_particle* source, struct reb_particle* target, const double G, const double k2, const struct reb_vec3d Omega){
+  struct reb_vec3d tot_force = {0};
+
+  //const double ms = source->m;
+  //const double mt = target->m;
+  const double Rs = source->r;
+  const double big_a = k2 * (Rs * Rs * Rs * Rs * Rs);
+
+  // distance vector FROM j TO i
+  const double dx = source->x - target->x;
+  const double dy = source->y - target->y;
+  const double dz = source->z - target->z;
+  const double d2 = dx * dx + dy * dy + dz * dz;
+  const double dr = sqrt(d2);
+
+  const double prefactor = big_a;
+  const double omega_dot_d = Omega.x * dx + Omega.y * dy + Omega.z * dz;
+  const double omega_squared = Omega.x * Omega.x + Omega.y * Omega.y + Omega.z * Omega.z;
+
+  const double t1 = 5. * omega_dot_d * omega_dot_d / (2. * (dr * dr * dr * dr * dr * dr * dr));
+  const double t2 = omega_squared / (2. * (dr * dr * dr * dr * dr));
+  const double t3 = omega_dot_d / (dr * dr * dr * dr * dr);
+
+  // This is the spin component
+  tot_force.x = (prefactor * ((t1 - t2) * dx - (t3 * Omega.x)));
+  tot_force.y = (prefactor * ((t1 - t2) * dy - (t3 * Omega.y)));
+  tot_force.z = (prefactor * ((t1 - t2) * dz - (t3 * Omega.z)));
+
+  // Tidal component. We need the distance from Sun to Planet now:
+  /*
+  const double dtx = source->x - target->x;
+  const double dty = source->y - target->y;
+  const double dtz = source->z - target->z;
+  const double dt2 = dtx * dtx + dty * dty + dtz * dtz;
+  const double dtr = sqrt(dt2);
+
+  const double dtr_dot_dr = dtx * dx + dty * dy + dtz * dz;
+
+  const double tidal_prefactor = big_a * G * mt / (dtr * dtr * dtr * dr * dr * dr * dr * dr);
+  const double tt1 = 3.;
+  const double tt2 = 11. * dtr_dot_dr * dtr_dot_dr / (dt2 * d2);
+  const double tt3 = 2. * dtr_dot_dr / d2;
+*/
+  //tot_force.x += (tidal_prefactor * ((tt1 - tt2) * dtx + tt3 * dx));
+  //tot_force.y += (tidal_prefactor * ((tt1 - tt2) * dty + tt3 * dy));
+  //tot_force.z += (tidal_prefactor * ((tt1 - tt2) * dtz + tt3 * dz));
+
+  return tot_force;
+}
 
 struct reb_vec3d rebx_calculate_spin_orbit_accelerations(struct reb_particle* source, struct reb_particle* target, const double G, const double k2, const double sigma, const struct reb_vec3d Omega){
   // All quantities associated with SOURCE
@@ -111,6 +163,8 @@ struct reb_vec3d rebx_calculate_spin_orbit_accelerations(struct reb_particle* so
     tot_force.y = (quad_prefactor * ((t1 - t2 - t4) * dy - (t3 * Omega.y)));
     tot_force.z = (quad_prefactor * ((t1 - t2 - t4) * dz - (t3 * Omega.z)));
 
+    //printf("%e %f %f\n", big_a, Rs, k2);
+
     if (sigma != 0.0){
       // Eggleton et. al 1998 tidal (equation 45)
       const double d_dot_vel = dx*dvx + dy*dvy + dz*dvz;
@@ -140,28 +194,23 @@ struct reb_vec3d rebx_calculate_spin_orbit_accelerations(struct reb_particle* so
       tot_force.x += (prefactor * (vec1_x + vec2_x));
       tot_force.y += (prefactor * (vec1_y + vec2_y));
       tot_force.z += (prefactor * (vec1_z + vec2_z));
+      //printf("%e %e %e %e\n", prefactor, sigma, mt, d2);
     }
   }
 
   return tot_force;
 }
 
-double rebx_calculate_rdot(struct reb_particle* source, struct reb_particle* target, const double G, const struct reb_vec3d Omega){
-  const double ms = source->m;
-  const double mt = target->m;
-  const double mtot = ms + mt;
-  const double Rt = target->r;
-}
-
-static void rebx_spin_orbit_accelerations(struct reb_particle* source, struct reb_particle* target, const double G, const double k2, const double sigma, const struct reb_vec3d Omega){
+static void rebx_spin_orbit_accelerations(struct reb_simulation* const sim, struct reb_particle* source, struct reb_particle* target, const double G, const double k2, const double sigma, const struct reb_vec3d Omega){
 
     // Input params all associated with source
     const double ms = source->m;
     const double mt = target->m;
     const double mtot = ms + mt;
-
-    // check if ODE is set here
+    //printf("Accelerations: %f %f\n", ms, mt);
     struct reb_vec3d tot_force = rebx_calculate_spin_orbit_accelerations(source, target, G, k2, sigma, Omega);
+    //printf("%f %f %f\n", tot_force.x, tot_force.y, tot_force.z);
+    //exit(1);
 
     target->ax -= ((ms / mtot) * tot_force.x);
     target->ay -= ((ms / mtot) * tot_force.y);
@@ -170,6 +219,20 @@ static void rebx_spin_orbit_accelerations(struct reb_particle* source, struct re
     source->ax += ((mt / mtot) * tot_force.x);
     source->ay += ((mt / mtot) * tot_force.y);
     source->az += ((mt / mtot) * tot_force.z);
+
+    // Now apply forces to all test particles
+    /*
+    const double N_active = sim->N_active;
+    const double N = sim->N;
+    for (int i = N_active; i < N; i++){
+      struct reb_particle* test = &sim->particles[i];
+      struct reb_vec3d tp_force = rebx_calculate_spin_distortion_acceleration(source, target, test, G, k2, Omega);
+
+      test->ax -= tp_force.x;
+      test->ay -= tp_force.y;
+      test->az -= tp_force.z;
+    }
+    */
 
 }
 
@@ -198,7 +261,33 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
           yDot[3*Nspins + 2] = 0;
 
           const struct reb_vec3d Omega = {.x=y[3*Nspins], .y=y[3*Nspins+1], .z=y[3*Nspins+2]};
+/*
+          struct reb_vec3d alignment;
+          double alignment_ts;
+
+          const struct reb_vec3d* alignment_ptr = rebx_get_param(rebx, pi->ap, "alignment");
+          const double* alignment_ts_ptr = rebx_get_param(rebx, pi->ap, "alignment_ts");
+
+          if (alignment_ptr != NULL && alignment_ts_ptr != NULL){
+            alignment = *alignment_ptr;
+            alignment_ts = *alignment_ts_ptr;
+
+            // apply aignment alignment torque
+            struct reb_vec3d omega_hat = reb_vec3d_normalize(Omega);
+            const double omega_mag = sqrt(reb_vec3d_length_squared(Omega));
+            struct reb_vec3d a_hat = reb_vec3d_normalize(alignment);
+
+            struct reb_vec3d cross1 = reb_vec3d_cross(omega_hat, a_hat);
+            struct reb_vec3d cross2 = reb_vec3d_cross(omega_hat, cross1);
+
+            yDot[3*Nspins] -= (omega_mag / alignment_ts) * cross2.x;
+            yDot[3*Nspins+1] -= (omega_mag / alignment_ts) * cross2.y;
+            yDot[3*Nspins+2] -= (omega_mag / alignment_ts) * cross2.z;
+          }
+*/
+/*
           for (int j=0; j<N_real; j++){
+
             if (i != j){
                 struct reb_particle* pj = &sim->particles[j];
 
@@ -224,13 +313,16 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
                 const double dy = pi->y - pj->y;
                 const double dz = pi->z - pj->z;
 
-		struct reb_vec3d tf = rebx_calculate_spin_orbit_accelerations(pi, pj, sim->G, *k2, sigma_in, Omega);
-                // Eggleton et. al 1998 spin EoM (equation 36)
+		            struct reb_vec3d tf = rebx_calculate_spin_orbit_accelerations(pi, pj, sim->G, *k2, sigma_in, Omega);
+
+		// Eggleton et. al 1998 spin EoM (equation 36)
                 yDot[3*Nspins] += ((dy * tf.z - dz * tf.y) / (-I_specific));
                 yDot[3*Nspins + 1] += ((dz * tf.x - dx * tf.z) / (-I_specific));
                 yDot[3*Nspins + 2] += ((dx * tf.y - dy * tf.x) / (-I_specific));
+
             }
           }
+        */
           Nspins += 1;
       }
     }
@@ -319,6 +411,8 @@ void rebx_tides_spin(struct reb_simulation* const sim, struct rebx_force* const 
       reb_simulation_warning(sim, "Spin axes are not being evolved. Call rebx_spin_initialize_ode to evolve\n");
     }
 
+    struct reb_particle* primary = &particles[0];
+
     for (int i=0; i<N; i++){
         struct reb_particle* source = &particles[i];
         // Particle must have a k2 set, otherwise we treat this body as a point particle
@@ -332,6 +426,7 @@ void rebx_tides_spin(struct reb_simulation* const sim, struct rebx_force* const 
           double sigma_in = 0.0;
           if (tau != NULL){
             sigma_in = 4 * (*tau) * sim->G / (3. * source->r * source->r * source->r * source->r * source->r * (*k2));
+            //printf("SIGMA: %e %e %e %e %e\n", sigma_in, *tau, source->r, *k2, sim->G);
           }
 
           for (int j=0; j<N; j++){
@@ -339,14 +434,32 @@ void rebx_tides_spin(struct reb_simulation* const sim, struct rebx_force* const 
                   continue;
               }
               struct reb_particle* target = &particles[j]; // j raises tides on i
-              if (source->m == 0 || target->m == 0){
+              if (source->m == 0){
                   continue;
               }
 
-              rebx_spin_orbit_accelerations(source, target, G, *k2, sigma_in, *Omega);
+              // Test particle stuff
+
+              if (target->m == 0){
+                // HARD CODED
+                //if (i == 0){
+                  // We only feel spin distortion from the planet
+                  //printf("TP: %d %d\n", i, j);
+                  struct reb_vec3d tot_force = rebx_calculate_spin_distortion_acceleration(source, target, G, *k2, *Omega);
+                  target->ax -= tot_force.x;
+                  target->ay -= tot_force.y;
+                  target->az -= tot_force.z;
+                }
+              //}
+
+              else{
+                  //printf("Massive: %d %d\n", i, j);
+                  rebx_spin_orbit_accelerations(sim, source, target, G, *k2, sigma_in, *Omega);
+              }
           }
       }
     }
+    //exit(1);
 }
 
 // Calculate potential of conservative piece of interaction between a point mass target and a source with a tidally and rotationally induced quadrupole

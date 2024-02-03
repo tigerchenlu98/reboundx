@@ -39,7 +39,7 @@ int main(int argc, char* argv[]){
     }
 
     sim->rand_seed = ind;
-    double delta = reb_random_uniform(sim, 1.05, 1.15);
+    double delta = reb_random_uniform(sim, 1.05, 1.08);
 
     // Initial conditions
     // Santerne et al 2019
@@ -88,13 +88,10 @@ int main(int argc, char* argv[]){
     double rho = 1.0 * pow(1.496e13, 3.) / (1.989e33); // 1 g/cm3 to rebound units
     double rf = pow(((3. * mf) / (4. * M_PI * rho)), 1./3.);
     double ef = 0.004;
-    double af = ae * pow(3./2.,2./3.) * delta;//1.37;//reb_random_uniform(sim, 1.37 - 0.02, 1.37 + 0.02);
+    double af = ae * pow(3./2.,2./3.) * delta2;//1.37;//reb_random_uniform(sim, 1.37 - 0.02, 1.37 + 0.02);
     double incf = reb_random_rayleigh(sim, ri);
     double tf = reb_random_uniform(sim, 0, 2 * M_PI);
     //double Mf = reb_random_uniform(sim, 0, 2 * M_PI);
-
-    //double rhof = 1.0 * pow(1.496e13,3) / (1.989e33); // 1 g/cm^3 to solar masses/AU^3
-    //rf =  pow((3 * mf / (4 * M_PI * rhof)), 1./3.);
 
     double planet_as[10] = {ab, ac, ad, ae, af};
 
@@ -104,19 +101,12 @@ int main(int argc, char* argv[]){
     reb_simulation_add_fmt(sim, "primary m a e inc theta", star, me, ae, ee, ie, te);
     reb_simulation_add_fmt(sim, "primary m r a e inc theta", star, mf, rf, af, ef, incf, tf);
 
-    //double rin = 1.5 * rf;
-    //double rho_ring = 0.5;
-    //double rout = 2.45 * pow(1./rho_ring, 1./3.) * rf;
-    //for (unsigned int i = 0; i < ntest; i++){
-    //reb_add_fmt(sim, "primary a inc Omega", sim->particles[2], rout, 30.*M_PI/180.);
-    //}
-
     // tides_spin
     struct rebx_extras* rebx = rebx_attach(sim);
     struct rebx_force* mof = rebx_load_force(rebx, "modify_orbits_forces");
     rebx_add_force(rebx, mof);
 
-    double tau_0 = -1e7 * 2 * M_PI;
+    double tau_0 = -5e7 * 2 * M_PI;
     double kappa = 100.;
     double beta = -1.7;
     for (unsigned int i = 3; i < sim->N; i++){
