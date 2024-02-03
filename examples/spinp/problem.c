@@ -134,9 +134,7 @@ int main(int argc, char* argv[]){
     // Laplace radius
     LR = laplace_radius(sim, rebx, &sim->particles[0], &sim->particles[1]);
     // Test particle
-    double d = ds[ind] * pf.r;
-    printf("%f\n", d/pf.r);
-    exit(1);
+    double d = ds[ind] * pf.rs;
     double le_theta = laplace_equilibrium(sim, rebx, &sim->particles[0], &sim->particles[1], d);
 
     //struct reb_orbit of = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
