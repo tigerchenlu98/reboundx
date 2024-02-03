@@ -285,7 +285,7 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
             yDot[3*Nspins+2] -= (omega_mag / alignment_ts) * cross2.z;
           }
 */
-/*
+
           for (int j=0; j<N_real; j++){
 
             if (i != j){
@@ -322,7 +322,7 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
 
             }
           }
-        */
+        
           Nspins += 1;
       }
     }
