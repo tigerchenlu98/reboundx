@@ -20,9 +20,9 @@ double me;
 double planet_as[10] = {0.1283,0.2061,0.88,1.06,1.37};
 double planet_aerrs[10] = {1.5e-3, 2.4e-3, 0.01, 0.03, 0.02};
 
-char title[100] = "22mt_";
-char title_stats[100] = "22mt_stats";
-char title_remove[100] = "rm -v 22mt_";
+char title[100] = "24mt_";
+char title_stats[100] = "24mt_stats";
+char title_remove[100] = "rm -v 24mt_";
 
 int main(int argc, char* argv[]){
     struct reb_simulation* sim = reb_simulation_create();
@@ -39,7 +39,7 @@ int main(int argc, char* argv[]){
     }
 
     sim->rand_seed = ind;
-    double delta = reb_random_uniform(sim, 1.05, 1.08);
+    double delta = reb_random_uniform(sim, 1.02, 1.03);
 
     // Initial conditions
     // Santerne et al 2019
@@ -119,7 +119,7 @@ int main(int argc, char* argv[]){
     struct rebx_force* effect = rebx_load_force(rebx, "tides_spin");
     rebx_add_force(rebx, effect);
 
-    double planet_k2 = 0.6;
+    double planet_k2 = reb_random_uniform(sim, 0.1, 0.6);
     rebx_set_param_double(rebx, &sim->particles[5].ap, "k2", planet_k2);
     rebx_set_param_double(rebx, &sim->particles[5].ap, "I", 0.25 * mf * rf * rf);
 
@@ -151,21 +151,20 @@ int main(int argc, char* argv[]){
     //fclose(of);
 
     //system(title_remove);
-    //FILE* of = fopen(title, "w");
-    //fprintf(of, "t,mag,theta,phi,sx,sy,sz,ad,ae,af,omega,mf\n");
+    FILE* of = fopen(title, "w");
+    fprintf(of, "t,mag,theta,phi,sx,sy,sz,ad,ae,af\n");
     //fprintf(of, "t,inc,Omega,nx\n");
     //for (unsigned int i = 0; i < ntest; i++){
     //fprintf(of, ",at,it");
     //}
     //fprintf(of, "\n");
-    //fclose(of);
+    fclose(of);
 
     struct reb_orbit o = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
     tmax = 5e6*2*M_PI;//o.P * 1e8;
     sim->dt = o.P / 10.12345;
     reb_simulation_integrate(sim, tmax);
 
-    //for (unsigned i = 0; i < 5; i++){
     struct reb_orbit orf = reb_orbit_from_particle(sim->G, sim->particles[5], sim->particles[0]);
     struct reb_vec3d n1 = orf.hvec;
 
@@ -183,8 +182,10 @@ int main(int argc, char* argv[]){
     double phip;
     reb_tools_xyz_to_spherical(srot, &magp, &thetap, &phip);
 
+    struct reb_orbit orbd = reb_orbit_from_particle(sim->G, sim->particles[3], sim->particles[0]);
+    struct reb_orbit orbe = reb_orbit_from_particle(sim->G, sim->particles[4], sim->particles[0]);
     FILE* sf = fopen(title_stats, "a");
-    fprintf(sf, "%d %f\n", ind, thetap * 180./M_PI);
+    fprintf(sf, "%d %f %f %f %f %f %f\n", ind, thetap * 180./M_PI, orbe.P/orbd.P, orf.P/orbe.P, orbd.a, orbe.a, orf.a);
     fclose(sf);
         //stable = 0;
         //system(title_remove);
