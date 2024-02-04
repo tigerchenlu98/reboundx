@@ -70,6 +70,88 @@
 #include <float.h>
 #include "reboundx.h"
 
+double rebx_calculate_radius_inflation(struct reb_particle* source, struct reb_particle* target, const double G, const double k2, const double sigma, const struct reb_vec3d Omega, const double dOmega, const double I){
+  const double ms = source->m;
+  const double Rs = source->r;
+  const double mt = target->m;
+  const double mtot = ms + mt;
+  const double mu_ij = ms * mt / mtot; // have already checked for 0 and inf
+  const double big_a = k2 * (Rs * Rs * Rs * Rs * Rs);
+
+  double magp;
+  double thetap;
+  double phip;
+  reb_tools_xyz_to_spherical(Omega, &magp, &thetap, &phip);
+
+  // distance vector FROM j TO i
+  const double dx = source->x - target->x;
+  const double dy = source->y - target->y;
+  const double dz = source->z - target->z;
+  struct reb_vec3d dvec = {.x=dx,.y=dy,.z=dz};
+  const double d2 = dx * dx + dy * dy + dz * dz;
+  const double dr = sqrt(d2);
+
+  const double dvx = source->vx - target->vx;
+  const double dvy = source->vy - target->vy;
+  const double dvz = source->vz - target->vz;
+  const double dv2 = dvx * dvx + dvy * dvy + dvz * dvz;
+  const double dv = sqrt(dv2);
+
+  const double dax = source->ax - target->ax;
+  const double day = source->ay - target->ay;
+  const double daz = source->az - target->az;
+  const double da2 = dax * dax + day * day + daz * daz;
+  const double da = sqrt(da2);
+
+  struct reb_vec3d tidal_force = {0};
+
+  if (sigma != 0.0){
+    // Eggleton et. al 1998 tidal (equation 45)
+    const double d_dot_vel = dx*dvx + dy*dvy + dz*dvz;
+
+    // first vector
+    const double vec1_x = 3. * d_dot_vel * dx;
+    const double vec1_y = 3. * d_dot_vel * dy;
+    const double vec1_z = 3. * d_dot_vel * dz;
+
+    // h vector - EKH
+    const double hx = dy * dvz - dz * dvy;
+    const double hy = dz * dvx - dx * dvz;
+    const double hz = dx * dvy - dy * dvx;
+
+    // h - r^2 Omega
+    const double comp_2_x = hx - d2 * Omega.x;
+    const double comp_2_y = hy - d2 * Omega.y;
+    const double comp_2_z = hz - d2 * Omega.z;
+
+    // second vector
+    const double vec2_x = comp_2_y * dz - comp_2_z * dy;
+    const double vec2_y = comp_2_z * dx - comp_2_x * dz;
+    const double vec2_z = comp_2_x * dy - comp_2_y * dx;
+    const double prefactor = (-9. * sigma * mt * mt * big_a * big_a) / (2. * mu_ij * (d2 * d2 * d2 * d2 * d2));
+
+    tidal_force.x = (prefactor * (vec1_x + vec2_x));
+    tidal_force.y = (prefactor * (vec1_y + vec2_y));
+    tidal_force.z = (prefactor * (vec1_z + vec2_z));
+  }
+
+  double alpha = 0.261;// Hard coded for now
+  double denominator = 0.5 * G * mt * mt / (Rs * Rs) + alpha * mt * Rs * magp * magp;
+
+  double adot_dcomp = -2. * G * ms + dr * dv2;
+  double adot = (-G * ms / 2.) * ((4. * (G * ms * dv + d2 * dv * da)) / (adot_dcomp * adot_dcomp)); // delta semimajor axis
+  struct reb_orbit op = reb_orbit_from_particle(G, *source, *target); // have already checked target = 0
+  const double t1 = 0.5 * G * ms * mt * adot / (op.a*op.a);
+  const double t2 = I * magp * dOmega;
+
+  struct reb_vec3d v3_1 = reb_vec3d_mul(tidal_force, mu_ij);
+  struct reb_vec3d v3_22 = reb_vec3d_mul(reb_vec3d_cross(Omega, dvec), -1.);
+  struct reb_vec3d v3_2 = reb_vec3d_add(dvec, v3_22);
+  const double t3 = reb_vec3d_dot(v3_1, v3_1);
+
+  return 0.5 * (t1 + t2 + t3) / denominator;
+}
+
 struct reb_vec3d rebx_calculate_spin_orbit_accelerations(struct reb_particle* source, struct reb_particle* target, const double G, const double k2, const double sigma, const struct reb_vec3d Omega){
   // All quantities associated with SOURCE
   // This is the quadrupole potential/tides raised on the SOURCE
@@ -186,11 +268,12 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
             sigma_in = 4 * (*tau) * sim->G / (3. * pi->r * pi->r * pi->r * pi->r * pi->r * (*k2));
           }
 	       // Set initial spin accelerations to 0
-          yDot[3*Nspins] = 0;
-          yDot[3*Nspins + 1] = 0;
-          yDot[3*Nspins + 2] = 0;
+          yDot[4*Nspins] = 0;
+          yDot[4*Nspins + 1] = 0;
+          yDot[4*Nspins + 2] = 0;
+          yDot[4*Nspins + 3] = 0;
 
-          const struct reb_vec3d Omega = {.x=y[3*Nspins], .y=y[3*Nspins+1], .z=y[3*Nspins+2]};
+          const struct reb_vec3d Omega = {.x=y[4*Nspins], .y=y[4*Nspins+1], .z=y[4*Nspins+2]};
           for (int j=0; j<N_real; j++){
             if (i != j){
                 struct reb_particle* pj = &sim->particles[j];
@@ -205,7 +288,7 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
 
                 double I_specific;
                 if (mi == 0){ // If test particle, assume I = specific moment of inertia
-                    I_specific = *I;  
+                    I_specific = *I;
                 }
                 else{
                   mu_ij = (mi * mj) / (mi + mj);
@@ -217,17 +300,23 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
                 const double dy = pi->y - pj->y;
                 const double dz = pi->z - pj->z;
 
-		struct reb_vec3d tf = rebx_calculate_spin_orbit_accelerations(pi, pj, sim->G, *k2, sigma_in, Omega);
+		            struct reb_vec3d tf = rebx_calculate_spin_orbit_accelerations(pi, pj, sim->G, *k2, sigma_in, Omega);
                 // Eggleton et. al 1998 spin EoM (equation 36)
-                yDot[3*Nspins] += ((dy * tf.z - dz * tf.y) / (-I_specific));
-                yDot[3*Nspins + 1] += ((dz * tf.x - dx * tf.z) / (-I_specific));
-                yDot[3*Nspins + 2] += ((dx * tf.y - dy * tf.x) / (-I_specific));
+                yDot[4*Nspins] += ((dy * tf.z - dz * tf.y) / (-I_specific));
+                yDot[4*Nspins + 1] += ((dz * tf.x - dx * tf.z) / (-I_specific));
+                yDot[4*Nspins + 2] += ((dx * tf.y - dy * tf.x) / (-I_specific));
             }
+          }
+
+          // Radius inflation
+          if (i != 0){
+            double dOmega = sqrt(yDot[4*Nspins]*yDot[4*Nspins]+yDot[4*Nspins+1]*yDot[4*Nspins+1]+yDot[4*Nspins+2]*yDot[4*Nspins+2]);
+            yDot[4*Nspins + 3] = rebx_calculate_radius_inflation(pi, &sim->particles[0], sim->G, *k2, sigma_in, Omega, dOmega, *I);//
           }
           Nspins += 1;
       }
     }
-    if (ode->length != Nspins*3){
+    if (ode->length != Nspins*4){
         reb_simulation_error(sim, "rebx_spin ODE is not of the expected length.\n");
         exit(1);
     }
@@ -245,14 +334,17 @@ static void rebx_spin_sync_pre(struct reb_ode* const ode, const double* const y0
         struct reb_vec3d* Omega = rebx_get_param(rebx, p->ap, "Omega");
         if (I != NULL && Omega != NULL){
             const struct reb_vec3d* Omega = rebx_get_param(rebx, p->ap, "Omega");
-            ode->y[3*Nspins] = Omega->x;
-            ode->y[3*Nspins+1] = Omega->y;
-            ode->y[3*Nspins+2] = Omega->z;
+            ode->y[4*Nspins] = Omega->x;
+            ode->y[4*Nspins+1] = Omega->y;
+            ode->y[4*Nspins+2] = Omega->z;
+
+            // radius
+            ode->y[4*Nspins+3] = p->r;
             Nspins += 1;
         }
     }
 
-    if (ode->length != Nspins*3){
+    if (ode->length != Nspins*4){
         reb_simulation_error(sim, "rebx_spin ODE is not of the expected length.\n");
         exit(1);
     }
@@ -268,11 +360,14 @@ static void rebx_spin_sync_post(struct reb_ode* const ode, const double* const y
         double* I = rebx_get_param(rebx, p->ap, "I");
         struct reb_vec3d* Omega = rebx_get_param(rebx, p->ap, "Omega");
         if (I != NULL && Omega != NULL){
-            rebx_set_param_vec3d(rebx, (struct rebx_node**)&p->ap, "Omega", (struct reb_vec3d){.x=y0[3*Nspins], .y=y0[3*Nspins+1], .z=y0[3*Nspins+2]});
+            rebx_set_param_vec3d(rebx, (struct rebx_node**)&p->ap, "Omega", (struct reb_vec3d){.x=y0[4*Nspins], .y=y0[4*Nspins+1], .z=y0[4*Nspins+2]});
+
+            // radius
+            p->r = ode->y[4*Nspins+3];
             Nspins += 1;
         }
     }
-    if (ode->length != Nspins*3){
+    if (ode->length != Nspins*4){
         reb_simulation_error(sim, "rebx_spin ODE is not of the expected length.\n");
         exit(0);
     }
@@ -293,7 +388,7 @@ void rebx_spin_initialize_ode(struct rebx_extras* const rebx, struct rebx_force*
     }
 
     if (Nspins > 0){
-        struct reb_ode* spin_ode = reb_ode_create(sim, Nspins*3);
+        struct reb_ode* spin_ode = reb_ode_create(sim, Nspins*4);
         spin_ode->ref = sim;
         spin_ode->derivatives = rebx_spin_derivatives;
         spin_ode->pre_timestep = rebx_spin_sync_pre;
