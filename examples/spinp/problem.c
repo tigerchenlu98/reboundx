@@ -9,7 +9,7 @@
  #include "tides_spin.c"
 
 void heartbeat(struct reb_simulation* r);
-double tmax;
+double tmax = 2e6 * 2 * M_PI;
 double mf;
 int ind;
 double LR;
@@ -20,9 +20,9 @@ struct rebx_interpolator* syfunc;
 struct rebx_interpolator* szfunc;
 struct rebx_extras* rebx;
 
-char title[100] = "spinp_test_";
+char title[100] = "correct_interp_";
 // char title_stats[100] = "migration_stats";
-char title_remove[100] = "rm -v spinp_test_";
+char title_remove[100] = "rm -v correct_interp_";
 
 double laplace_radius(struct reb_simulation* sim, struct rebx_extras* const rebx, struct reb_particle* planet, struct reb_particle* star){
   const double* k2 = rebx_get_param(rebx, planet->ap, "k2");
@@ -57,6 +57,49 @@ double laplace_equilibrium(struct reb_simulation* sim, struct rebx_extras* const
   return theta_p - 0.5 * atan2(sin(2.*theta_p),cos(2.*theta_p) + (lr/d)*(lr/d)*(lr/d)*(lr/d)*(lr/d));
 }
 
+// Interpolation
+MAX_READ = 100000;
+double TIME[100000];
+double SPINX[100000];
+double SPINY[100000];
+double SPINZ[100000];
+
+int findt(double t){
+  int start = (int)(t / (tmax * 0.5));
+  if (t == 0){
+    return 1;
+  }
+  for (unsigned int i = start; i < MAX_READ; i++){
+    double currdiff = t - TIME[i];
+    if (currdiff < 0){ // have gone from larger to smaller
+      return i; // this is the first element that is bigger than the key
+    }
+  }
+}
+
+struct reb_vec3d interp(double t){
+  int upperind = findt(t);
+  double tupper = TIME[upperind];
+  double tlower = TIME[upperind - 1];
+
+  double sx_upper = SPINX[upperind];
+  double sx_lower = SPINX[upperind - 1];
+
+  double sy_upper = SPINY[upperind];
+  double sy_lower = SPINY[upperind - 1];
+
+  double sz_upper = SPINZ[upperind];
+  double sz_lower = SPINZ[upperind-1];
+
+  double sx_interp = (sx_lower * (tupper - t) + sx_upper * (t - tlower)) / (tupper - tlower);
+  double sy_interp = (sy_lower * (tupper - t) + sy_upper * (t - tlower)) / (tupper - tlower);
+  double sz_interp = (sz_lower * (tupper - t) + sz_upper * (t - tlower)) / (tupper - tlower);
+
+  struct reb_vec3d rvec = {.x = sx_interp, .y = sy_interp, .z = sz_interp};
+  return rvec;
+}
+
+
 int main(int argc, char* argv[]){
     double ds[18] = {1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0};
 
@@ -72,30 +115,26 @@ int main(int argc, char* argv[]){
     }
     system(title_remove);
 
-    // Load in the prescribed spin axis evolution
-    int max_read = 100000; // so stupid
-    double time[max_read];
-    double spinx[max_read];
-    double spiny[max_read];
-    double spinz[max_read];
-
     FILE * ftime = fopen("140times.txt", "r");
     FILE * fsx = fopen("140sx.txt", "r");
     FILE * fsy = fopen("140sy.txt", "r");
     FILE * fsz = fopen("140sz.txt", "r");
-    for (int i = 0; i < max_read; i++)
+    for (int i = 0; i < MAX_READ; i++)
     {
-        fscanf(ftime, "%lf", &time[i]);
-        fscanf(fsx, "%lf", &spinx[i]);
-        fscanf(fsy, "%lf", &spiny[i]);
-        fscanf(fsz, "%lf", &spinz[i]);
+        fscanf(ftime, "%lf", &TIME[i]);
+        fscanf(fsx, "%lf", &SPINX[i]);
+        fscanf(fsy, "%lf", &SPINY[i]);
+        fscanf(fsz, "%lf", &SPINZ[i]);
     }
 
     // Create splines
     int n = 100000;
-    sxfunc = rebx_create_interpolator(rebx, n, time, spinx, REBX_INTERPOLATION_SPLINE);
-    syfunc = rebx_create_interpolator(rebx, n, time, spiny, REBX_INTERPOLATION_SPLINE);
-    szfunc = rebx_create_interpolator(rebx, n, time, spinz, REBX_INTERPOLATION_SPLINE);
+
+    rebx = rebx_attach(sim);
+    sxfunc = rebx_create_interpolator(rebx, n, TIME, SPINX, REBX_INTERPOLATION_SPLINE);
+    syfunc = rebx_create_interpolator(rebx, n, TIME, SPINY, REBX_INTERPOLATION_SPLINE);
+    szfunc = rebx_create_interpolator(rebx, n, TIME, SPINZ, REBX_INTERPOLATION_SPLINE);
+
 
     // Initial conditions
     // Santerne et al 2019
@@ -111,7 +150,6 @@ int main(int argc, char* argv[]){
     double af = 3.267176;
     reb_simulation_add_fmt(sim, "primary m a", pf, ms, af);
 
-    rebx = rebx_attach(sim);
     //migration
     struct rebx_force* mof = rebx_load_force(rebx, "modify_orbits_forces");
     rebx_add_force(rebx, mof);
@@ -123,9 +161,9 @@ int main(int argc, char* argv[]){
 
     double planet_k2 = 0.6;
     struct reb_vec3d Omega_sv = {0};
-    Omega_sv.x = spinx[0];
-    Omega_sv.y = spiny[0];
-    Omega_sv.z = spinz[0];
+    Omega_sv.x = SPINX[0];
+    Omega_sv.y = SPINY[0];
+    Omega_sv.z = SPINZ[0];
     rebx_set_param_double(rebx, &sim->particles[0].ap, "k2", planet_k2);
     rebx_set_param_double(rebx, &sim->particles[0].ap, "I", 0.25 * pf.m * pf.r * pf.r);
     rebx_set_param_vec3d(rebx, &sim->particles[0].ap, "Omega", Omega_sv);
@@ -135,8 +173,6 @@ int main(int argc, char* argv[]){
     LR = laplace_radius(sim, rebx, &sim->particles[0], &sim->particles[1]);
     // Test particle
     double d = ds[ind] * pf.r;
-    printf("%f\n", d/pf.r);
-    exit(1);
     double le_theta = laplace_equilibrium(sim, rebx, &sim->particles[0], &sim->particles[1], d);
 
     //struct reb_orbit of = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
@@ -150,18 +186,18 @@ int main(int argc, char* argv[]){
     reb_simulation_move_to_com(sim);
 
     struct reb_orbit ot = reb_orbit_from_particle(sim->G, sim->particles[2], sim->particles[0]);
-    struct reb_vec3d l = ot.hvec;
+    //struct reb_vec3d l = ot.hvec;
     double mag_l;
     double theta_l;
     double phi_l;
-    reb_tools_xyz_to_spherical(l, &mag_l, &theta_l, &phi_l);
+    //reb_tools_xyz_to_spherical(l, &mag_l, &theta_l, &phi_l);
 
-    struct reb_vec3d l_hat = reb_vec3d_normalize(l);
-    struct reb_vec3d Omega_hat = reb_vec3d_normalize(Omega_sv);
+    //struct reb_vec3d l_hat = reb_vec3d_normalize(l);
+    //struct reb_vec3d Omega_hat = reb_vec3d_normalize(Omega_sv);
     //printf("%f %f %f %f %f %f %f %f %f %f\n", l_hat.x, l_hat.y, l_hat.z, Omega_hat.x, Omega_hat.y, Omega_hat.z, theta_o * 180./M_PI, theta_l * 180./M_PI, phi_o * 180./M_PI, phi_l * 180./M_PI);
     //exit(1);
 
-    tmax = 2e6 * 2 * M_PI;
+    //tmax = 2e6 * 2 * M_PI;
     sim->dt = ot.P / 15.12345;
     sim->N_active=2;
     reb_simulation_integrate(sim, tmax);
@@ -210,20 +246,22 @@ void heartbeat(struct reb_simulation* sim){
       reb_tools_xyz_to_spherical(nt_rot, &mag_p, &theta_p, &phi_p);
 
       FILE* sf = fopen(title, "a");
-      fprintf(sf, "%f,%f,%f,%f,%e,%e,%e\n",sim->t,Omega_p_inv->x, Omega_p_inv->y, Omega_p_inv->z,theta_p,phi_p,at/planet->r);
+      fprintf(sf, "%f,%e,%e,%e,%e,%e,%e\n",sim->t,nt.x,nt.y,nt.z,theta_p,phi_p,at/planet->r);
+      //fprintf(sf, "%f,%f,%f,%f\n",sim->t,Omega_p_inv->x, Omega_p_inv->y,Omega_p_inv->z);
       fclose(sf);
 
 
     }
 
 
-    //if(reb_simulation_output_check(sim, 10.)){        // outputs to the screen
-    //    reb_simulation_output_timing(sim, tmax);
-    //}
-
+    if(reb_simulation_output_check(sim, 10.)){        // outputs to the screen
+        reb_simulation_output_timing(sim, tmax);
+    }
+/*
     struct reb_orbit o = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
     if (o.a < 1.37 && first_check){
       rebx_set_param_double(rebx, &sim->particles[1].ap, "tau_a", INFINITY);
       first_check=0;
     }
+    */
 }
