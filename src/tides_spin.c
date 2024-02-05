@@ -78,10 +78,7 @@ double rebx_calculate_radius_inflation(struct reb_particle* source, struct reb_p
   const double mu_ij = ms * mt / mtot; // have already checked for 0 and inf
   const double big_a = k2 * (Rs * Rs * Rs * Rs * Rs);
 
-  double magp;
-  double thetap;
-  double phip;
-  reb_tools_xyz_to_spherical(Omega, &magp, &thetap, &phip);
+  double magp = sqrt(Omega.x*Omega.x + Omega.y*Omega.y + Omega.z*Omega.z);
 
   // distance vector FROM j TO i
   const double dx = source->x - target->x;
@@ -94,6 +91,7 @@ double rebx_calculate_radius_inflation(struct reb_particle* source, struct reb_p
   const double dvx = source->vx - target->vx;
   const double dvy = source->vy - target->vy;
   const double dvz = source->vz - target->vz;
+  struct reb_vec3d vvec = {.x=dvx,.y=dvy,.z=dvz};
   const double dv2 = dvx * dvx + dvy * dvy + dvz * dvz;
   const double dv = sqrt(dv2);
 
@@ -104,7 +102,7 @@ double rebx_calculate_radius_inflation(struct reb_particle* source, struct reb_p
   const double da = sqrt(da2);
 
   struct reb_vec3d tidal_force = {0};
-
+/*
   if (sigma != 0.0){
     // Eggleton et. al 1998 tidal (equation 45)
     const double d_dot_vel = dx*dvx + dy*dvy + dz*dvz;
@@ -134,7 +132,7 @@ double rebx_calculate_radius_inflation(struct reb_particle* source, struct reb_p
     tidal_force.y = (prefactor * (vec1_y + vec2_y));
     tidal_force.z = (prefactor * (vec1_z + vec2_z));
   }
-
+*/
   double alpha = 0.261;// Hard coded for now
   double denominator = 0.5 * G * mt * mt / (Rs * Rs) + alpha * mt * Rs * magp * magp;
 
@@ -146,7 +144,7 @@ double rebx_calculate_radius_inflation(struct reb_particle* source, struct reb_p
 
   struct reb_vec3d v3_1 = reb_vec3d_mul(tidal_force, mu_ij);
   struct reb_vec3d v3_22 = reb_vec3d_mul(reb_vec3d_cross(Omega, dvec), -1.);
-  struct reb_vec3d v3_2 = reb_vec3d_add(dvec, v3_22);
+  struct reb_vec3d v3_2 = reb_vec3d_add(vvec, v3_22);
   const double t3 = reb_vec3d_dot(v3_1, v3_1);
 
   return 0.5 * (t1 + t2 + t3) / denominator;
@@ -312,6 +310,8 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
           if (i != 0){
             double dOmega = sqrt(yDot[4*Nspins]*yDot[4*Nspins]+yDot[4*Nspins+1]*yDot[4*Nspins+1]+yDot[4*Nspins+2]*yDot[4*Nspins+2]);
             yDot[4*Nspins + 3] = rebx_calculate_radius_inflation(pi, &sim->particles[0], sim->G, *k2, sigma_in, Omega, dOmega, *I);//
+            //printf("%d %e\n", i, yDot[4*Nspins + 3]);
+            //exit(1);
           }
           Nspins += 1;
       }
