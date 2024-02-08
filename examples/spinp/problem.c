@@ -24,6 +24,10 @@ char title[100] = "smaller_ts";
 // char title_stats[100] = "migration_stats";
 char title_remove[100] = "rm -v smaller_ts";
 
+struct readin{
+  double 
+}
+
 double laplace_radius(struct reb_simulation* sim, struct rebx_extras* const rebx, struct reb_particle* planet, struct reb_particle* star){
   const double* k2 = rebx_get_param(rebx, planet->ap, "k2");
   const struct reb_vec3d* Omega = rebx_get_param(rebx, planet->ap, "Omega");
@@ -65,44 +69,9 @@ double SPINX[100000];
 double SPINY[100000];
 double SPINZ[100000];
 
-int findt(double t){
-  int start = (int)(t / (tmax * 0.5));
-  if (t == 0){
-    return 1;
-  }
-  for (unsigned int i = start; i < MAX_READ; i++){
-    double currdiff = t - TIME[i];
-    if (currdiff < 0){ // have gone from larger to smaller
-      return i; // this is the first element that is bigger than the key
-    }
-  }
-}
-
-struct reb_vec3d interp(double t){
-  int upperind = findt(t);
-  double tupper = TIME[upperind];
-  double tlower = TIME[upperind - 1];
-
-  double sx_upper = SPINX[upperind];
-  double sx_lower = SPINX[upperind - 1];
-
-  double sy_upper = SPINY[upperind];
-  double sy_lower = SPINY[upperind - 1];
-
-  double sz_upper = SPINZ[upperind];
-  double sz_lower = SPINZ[upperind-1];
-
-  double sx_interp = (sx_lower * (tupper - t) + sx_upper * (t - tlower)) / (tupper - tlower);
-  double sy_interp = (sy_lower * (tupper - t) + sy_upper * (t - tlower)) / (tupper - tlower);
-  double sz_interp = (sz_lower * (tupper - t) + sz_upper * (t - tlower)) / (tupper - tlower);
-
-  struct reb_vec3d rvec = {.x = sx_interp, .y = sy_interp, .z = sz_interp};
-  return rvec;
-}
-
 
 int main(int argc, char* argv[]){
-    double ds[18] = {1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0};
+    double ds[21] = {1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5, 10.0, 12.0, 15.0, 20.0};
 
     struct reb_simulation* sim = reb_simulation_create();
     sim->integrator         = REB_INTEGRATOR_WHFAST;
@@ -175,10 +144,10 @@ int main(int argc, char* argv[]){
     // Laplace radius
     LR = laplace_radius(sim, rebx, &sim->particles[0], &sim->particles[1]);
     // Test particle
-    double d = 9.0 * pf.r;//LR;//ds[ind] * pf.r;
+    double d = ds[ind] * pf.r;
     //printf("%f\n",LR/d);
     double le_theta = laplace_equilibrium(sim, rebx, &sim->particles[0], &sim->particles[1], d);
-    printf("%f %f\n", le_theta * 180./M_PI, LR/pf.r);
+    //printf("%f %f\n", le_theta * 180./M_PI, LR/pf.r);
     //exit(1);
 
     struct reb_orbit of = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
@@ -265,9 +234,9 @@ void heartbeat(struct reb_simulation* sim){
     }
 
 
-    if(reb_simulation_output_check(sim, 10.)){        // outputs to the screen
-        reb_simulation_output_timing(sim, tmax);
-    }
+    //if(reb_simulation_output_check(sim, 10.)){        // outputs to the screen
+    //    reb_simulation_output_timing(sim, tmax);
+    //}
 
     struct reb_orbit o = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
     if (o.a < 1.37 && first_check){
