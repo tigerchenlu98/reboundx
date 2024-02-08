@@ -14,14 +14,14 @@ double obl(struct reb_vec3d v1, struct reb_vec3d v2){
   return acos(reb_vec3d_dot(v1,v2) / (sqrt(reb_vec3d_length_squared(v1)) * sqrt(reb_vec3d_length_squared(v2))));
 }
 
-//char title[100] = "dumb_test_potentialk";
-char title_stats[100] = "zlk1212_stats";
-//char title_remove[100] = "rm -v dumb_test_potentialk";
+char title[100] = "test_bigr";
+//char title_stats[100] = "zlk1212_stats";
+char title_remove[100] = "rm -v test_bigr";
 int ind;
 int printed_stats=1;
 double planet_a;
 
-double tmax = 1e8*2*M_PI;
+double tmax = 1e5*2*M_PI;
 
 // eccentricity functions
 double h3(double e){
@@ -57,13 +57,13 @@ int main(int argc, char* argv[]){
  // Yee et al 2018
  struct reb_particle planet = {0};
  double planet_m  = reb_random_uniform(sim, 0.0736 - 0.0047, 0.0736 + 0.0047) * 9.55e-4;
- double planet_r = reb_random_uniform(sim, 4.36 - 0.06, 4.36 + 0.06) * 4.2588e-5;
+ double planet_r = 2. * 4.2588e-5;//reb_random_uniform(sim, 4.36 - 0.06, 4.36 + 0.06) * 4.2588e-5;
  planet_a = 0.5;//reb_random_uniform(sim, 0.5, 1.5);
  double planet_e = 0.01;//reb_random_uniform(sim, 0.01, 0.1);
  double planet_Omega = (117.1 - 180.) * (M_PI / 180.); //reb_random_uniform(sim, 0., 2 * M_PI);
  double planet_omega = 0.;//reb_random_uniform(sim, 0.0, 2 * M_PI);
  double planet_f = 0;//reb_random_uniform(sim, 0.0, 2 * M_PI);
- double planet_inc = 30. * M_PI/180.;//reb_random_uniform(sim, 6. * M_PI/180., 39. * M_PI/180.);
+ double planet_inc = 50. * M_PI/180.;//reb_random_uniform(sim, 6. * M_PI/180., 39. * M_PI/180.);
  //double planet_inc = 106. * M_PI/180.;
 
  // HAT-P-11c - treated as a point particle
@@ -82,16 +82,8 @@ int main(int argc, char* argv[]){
    struct reb_orbit o1 = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
    struct reb_orbit o2 = reb_orbit_from_particle(sim->G, sim->particles[2], sim->particles[0]);
    double angle = acos(reb_vec3d_dot(o1.hvec, o2.hvec) / (sqrt(reb_vec3d_length_squared(o1.hvec)) * sqrt(reb_vec3d_length_squared(o2.hvec))));
-   //printf("%f\n", angle * 180./M_PI);
-   //exit(1);
-/*
- if (angle < 39. * (180./M_PI)){
-   // initial angle is less than the Kozai angle
-   // Kill
-   printf("Kozai inclination not reached %f %f %f\n", planet_Omega * (180./M_PI), planet_inc * (180./M_PI), angle * (180./M_PI));
-   exit(1);
- }
-*/
+   printf("%f\n", angle * 180./M_PI);
+
  // Initial conditions
   // Setup constants
   sim->integrator         = REB_INTEGRATOR_IAS15; // IAS15 is used for its adaptive timestep:
@@ -116,9 +108,10 @@ int main(int argc, char* argv[]){
   const double solar_spin_period = 25. * 2. * M_PI / 365.;
   const double solar_spin = (2 * M_PI) / solar_spin_period;
   rebx_set_param_vec3d(rebx, &sim->particles[0].ap, "Omega", (struct reb_vec3d){.z=solar_spin}); // Omega_x = Omega_y = 0 by default
+  rebx_set_param_double(rebx, &sim->particles[0].ap, "tau", 1e-8);
 
   // Planet
-  double planet_k2 = reb_random_uniform(sim, 0.4, 0.8);
+  double planet_k2 = 0.4;//reb_random_uniform(sim, 0.4, 0.8);
   rebx_set_param_double(rebx, &sim->particles[1].ap, "k2", planet_k2);
   rebx_set_param_double(rebx, &sim->particles[1].ap, "I", 0.25 * planet_m * planet_r * planet_r);
 
@@ -128,7 +121,7 @@ int main(int argc, char* argv[]){
   const double phi_p = 0. * M_PI / 180;
   struct reb_vec3d Omega_sv = reb_tools_spherical_to_xyz(spin_p, theta_p, phi_p);
   rebx_set_param_vec3d(rebx, &sim->particles[1].ap, "Omega", Omega_sv);
-  rebx_set_param_double(rebx, &sim->particles[1].ap, "tau", 1e-4);
+  rebx_set_param_double(rebx, &sim->particles[1].ap, "tau", 1e-7);
 
 
   // add GR precession:
@@ -151,12 +144,12 @@ int main(int argc, char* argv[]){
   //system("rm -v test.txt");        // delete previous output file
   //system(title_remove);
 
-  //FILE* of = fopen(title, "w");
-  //fprintf(of, "#Seed: %d,%e,%e,%e,%e,%e,%e,%e,%e\n", index, planet_m, planet_r, planet_a, planet_e, planet_omega, planet_inc, planet_f, planet_k2);
-  //fprintf(of, "t,a1,i1,e1,p_ob,a2,i2,e2,pert_ob,mi\n");
+  FILE* of = fopen(title, "w");
+  fprintf(of, "#Seed: %d,%e,%e,%e,%e,%e,%e,%e,%e\n", index, planet_m, planet_r, planet_a, planet_e, planet_omega, planet_inc, planet_f, planet_k2);
+  fprintf(of, "t,a1,i1,e1,p_ob,a2,i2,e2,pert_ob,mi\n");
   //fprintf(of, "t,a1,i1,e1,p_ob,mag_p,theta_p,phi_p\n");
   //"t,ssx,ssy,ssz,mag1,theta1,phi1,a1,e1,nx1,ny1,nz1,nOm1,pom1,a2,e2,i2,Om2,pom2,nx2,ny2,nz2,p_ob,pert_ob,mi\n");
-  //fclose(of);
+  fclose(of);
 
   reb_simulation_integrate(sim, tmax);
   /*
@@ -175,6 +168,7 @@ int main(int argc, char* argv[]){
 
 void heartbeat(struct reb_simulation* sim){
    // radius inflation
+   /*
    struct reb_orbit ob = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
    struct reb_vec3d* Omegap = rebx_get_param(rebx, &sim->particles[1]->ap, "Omega");
    double magp;
@@ -197,14 +191,16 @@ void heartbeat(struct reb_simulation* sim){
    double big_term_num = magp*magp*h3(eb) - 2*ob.n*magp*h4(eb) + ob.n*ob.n*h5(eb);
    double big_term_denom = qb * sim->G * mb**2 /rb**2 + alpha_p*mp*rp*magp*magp;
    double rdot = prefactor * (ms / mp) * pow((re / ob.a), 5.);
-
+*/
    // Output spin and orbital information to file
+
    if(reb_simulation_output_check(sim, 10. * 2 * M_PI)){        // outputs every 100 years
      struct rebx_extras* const rebx = sim->extras;
 
      struct reb_particle* sun = &sim->particles[0];
      struct reb_particle* p1 = &sim->particles[1];
      struct reb_particle* pert = &sim->particles[2];
+
 
      // orbits
      struct reb_orbit o1 = reb_orbit_from_particle(sim->G, *p1, *sun);
@@ -233,15 +229,7 @@ void heartbeat(struct reb_simulation* sim){
      double p_ob = obl(*Omega_sun, n1);
      double pert_ob = obl(*Omega_sun, n2);
      double mi = obl(n1 , n2);
-/*
-     if (a1 < 0.051 && printed_stats){
-       printed_stats = 0;
-       FILE* sf = fopen(title_stats, "a");
-       fprintf(sf, "%d,%f,%f,%f\n", ind, e1, p_ob * 180./M_PI, planet_a);
-       fclose(sf);
-       exit(1);
-     }
-*/
+
      // Transform spin vector into planet frame, w/ z-axis aligned with orbit normal and x-axis aligned with line of nodes
      struct reb_vec3d line_of_nodes = reb_vec3d_cross((struct reb_vec3d){.z =1}, n1);
      struct reb_rotation rot = reb_rotation_init_to_new_axes(n1, line_of_nodes); // Arguments to this function are the new z and x axes
@@ -251,36 +239,21 @@ void heartbeat(struct reb_simulation* sim){
      struct reb_vec3d srot = reb_vec3d_rotate(*Omega_p_inv, rot); // spin vector in the planet's frame
 
      // Interpret the spin axis in the more natural spherical coordinates
-     /*
+
      double mag_p;
      double theta_p;
      double phi_p;
      reb_tools_xyz_to_spherical(srot, &mag_p, &theta_p, &phi_p);
-     */
 
-     //FILE* of = fopen(title, "a");
-     //fprintf(of, "%f,%e,%f,%f,%f,%e,%f,%f,%f,%f\n", sim->t,a1,i1,e1,p_ob,a2,i2,e2,pert_ob,mi); // print spins and orbits
+
+     FILE* of = fopen(title, "a");
+     fprintf(of, "%f,%e,%f,%f,%f,%e,%f,%f,%f,%f\n", sim->t,a1,i1,e1,p_ob,a2,i2,e2,pert_ob,mi); // print spins and orbits
      //fprintf(of, "%f,%e,%f,%f,%f,%e,%f,%f\n", sim->t,a1,i1,e1,p_ob,mag_p,theta_p,phi_p);
-     //fclose(of);
-   }
-/*
-   if(reb_output_check(sim, 0.01*1e6 * 2 * M_PI)){
-     FILE* fe = fopen(title_exact, "a");
-     struct rebx_extras* const rebx = sim->extras;
-     fprintf(fe, "%f", sim->t);
-     for (unsigned int i = 0; i < sim->N; i++){
-       struct reb_particle* p = &sim->particles[i];
-       fprintf(fe, ",%e,%e,%e,%e,%e,%e", p->x,p->y,p->z,p->vx,p->vy,p->vz);
-       if(i==0 || i==1){
-         struct reb_vec3d* Omega = rebx_get_param(rebx, p->ap, "Omega");
-         fprintf(fe, ",%e,%e,%e",Omega->x,Omega->y,Omega->z);
-       }
-     }
-     fprintf(fe,"\n");
-     fclose(fe);
+     fclose(of);
 
    }
-*/
+
+
    if(reb_simulation_output_check(sim, 20.*M_PI)){        // outputs to the screen
        reb_simulation_output_timing(sim, tmax);
    }
