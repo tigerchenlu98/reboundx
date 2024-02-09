@@ -91,6 +91,19 @@ double rebx_h5(double e){
   return (1. + (31. * (e*e)/2.) + (255. * (e*e*e*e)/8.) + (185. * (e*e*e*e*e*e)/16.) + (25. * (e*e*e*e*e*e*e*e)/64.)) / pow((1. - e*e), 15./2.);
 }
 
+double rebx_curlyL(double r){
+  double A = -11.7039;
+  double B = 12.8994;
+  double C = -2.12471;
+
+  double rrj = log10(r/4.676e-4);
+
+  double exponent = A * rrj + B * rrj + C;
+  double conversion = 1.12234e-11;
+
+  return pow(10., exponent) * conversion;
+}
+
 double rebx_calculate_radius_inflation(struct reb_particle* source, struct reb_particle* target, const double G, const double k2, const double tau, const struct reb_vec3d Omega, const double dOmega, const double I){
   const double ms = source->m;
   const double Rs = source->r;
@@ -115,13 +128,7 @@ double rebx_calculate_radius_inflation(struct reb_particle* source, struct reb_p
   struct reb_vec3d vvec = {.x=dvx,.y=dvy,.z=dvz};
   const double dv2 = dvx * dvx + dvy * dvy + dvz * dvz;
   const double dv = sqrt(dv2);
-/*
-  const double dax = source->ax - target->ax;
-  const double day = source->ay - target->ay;
-  const double daz = source->az - target->az;
-  const double da2 = dax * dax + day * day + daz * daz;
-  const double da = sqrt(da2);
-*/
+
   struct reb_vec3d tidal_force = {0};
 
   double sigma = 4 * tau * G / (3. * Rs*Rs*Rs*Rs*Rs * k2);
@@ -154,46 +161,20 @@ double rebx_calculate_radius_inflation(struct reb_particle* source, struct reb_p
     tidal_force.y = (prefactor * (vec1_y + vec2_y));
     tidal_force.z = (prefactor * (vec1_z + vec2_z));
   }
-/*
-  double adot_dcomp = -2. * G * ms + dr * dv2;
-  double adot = (-G * ms / 2.) * ((4. * (G * ms * dv + d2 * dv * da)) / (adot_dcomp * adot_dcomp)); // delta semimajor axis
-  struct reb_orbit op = reb_orbit_from_particle(G, *source, *target); // have already checked target = 0
-  const double t1 = 0.5 * G * ms * mt * adot / (op.a*op.a);
-  const double t2 = I * magp * dOmega;
-*/
+
   double alpha = 0.261;// Hard coded for now
   double denominator = 0.5 * G * mt * mt / (Rs * Rs) + alpha * mt * Rs * magp * magp;
 
-  // Etot
-  struct reb_orbit op = reb_orbit_from_particle(G, *source, *target); // have already checked target = 0
-  double tidal_Q = 1. / (2. * op.n * tau);
-  double etot_prefactor = -1. * mu_ij * op.a*op.a*op.n*(ms/mt)*pow((Rs/op.a), 5.)*(6.*k2/tidal_Q);
+  // Curly L
+  double curlyL = -1. * rebx_curlyL(Rs);
 
-  struct reb_vec3d ehat = reb_vec3d_normalize(op.evec);
-  struct reb_vec3d hhat = reb_vec3d_normalize(op.hvec);
-  struct reb_vec3d qhat = reb_vec3d_cross(hhat, ehat);
-
-  double omegae = reb_vec3d_dot(Omega, ehat);
-  double omegaq = reb_vec3d_dot(Omega, qhat);
-  double omegah = reb_vec3d_dot(Omega, hhat);
-
-  double et1 = omegae*omegae*rebx_h1(op.e) + omegaq*omegaq*rebx_h2(op.e);
-  double et2 = omegah*omegah*rebx_h3(op.e);
-  double et3 = -2 * op.n * omegah * rebx_h4(op.e);
-  double et4 = op.n*op.n * rebx_h5(op.e);
-  double etot = etot_prefactor * (0.5 * et1 + et2 + et3 + et4);
-
-
+  // Tidal force
   struct reb_vec3d v3_1 = reb_vec3d_mul(tidal_force, mu_ij);
   struct reb_vec3d v3_22 = reb_vec3d_mul(reb_vec3d_cross(Omega, dvec), -1.);
   struct reb_vec3d v3_2 = reb_vec3d_add(vvec, v3_22);
   const double t3 = reb_vec3d_dot(v3_1, v3_1);
 
-  double retval = 0.5 * (etot + t3) / denominator;
-  if (retval != retval){
-    printf("%f %f %f %f %f %f\n", etot_prefactor, et1, et2, et3, et4, op.e);
-    exit(1);
-  }
+  double retval = 0.5 * (curlyL + t3) / denominator;
   return retval;
 }
 
