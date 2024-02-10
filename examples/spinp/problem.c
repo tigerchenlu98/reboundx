@@ -9,7 +9,7 @@
  #include "tides_spin.c"
 
 void heartbeat(struct reb_simulation* r);
-double tmax = 2e6 * 2 * M_PI;
+double tmax = 2e6*2*M_PI;
 double mf;
 int ind;
 double LR;
@@ -20,13 +20,9 @@ struct rebx_interpolator* syfunc;
 struct rebx_interpolator* szfunc;
 struct rebx_extras* rebx;
 
-char title[100] = "smaller_ts";
+char title[100] = "debug";
 // char title_stats[100] = "migration_stats";
-char title_remove[100] = "rm -v smaller_ts";
-
-struct readin{
-  double 
-}
+char title_remove[100] = "rm -v debug";
 
 double laplace_radius(struct reb_simulation* sim, struct rebx_extras* const rebx, struct reb_particle* planet, struct reb_particle* star){
   const double* k2 = rebx_get_param(rebx, planet->ap, "k2");
@@ -144,7 +140,7 @@ int main(int argc, char* argv[]){
     // Laplace radius
     LR = laplace_radius(sim, rebx, &sim->particles[0], &sim->particles[1]);
     // Test particle
-    double d = ds[ind] * pf.r;
+    double d = 20. * pf.r;//ds[ind] * pf.r;
     //printf("%f\n",LR/d);
     double le_theta = laplace_equilibrium(sim, rebx, &sim->particles[0], &sim->particles[1], d);
     //printf("%f %f\n", le_theta * 180./M_PI, LR/pf.r);
@@ -173,7 +169,9 @@ int main(int argc, char* argv[]){
     //exit(1);
 
     //tmax = 2e6 * 2 * M_PI;
-    sim->dt = ot.P / 50.12345;
+    sim->dt = ot.P / 20.12345;
+    //printf("%f\n", sim->dt);
+
     sim->N_active=2;
     reb_simulation_integrate(sim, tmax);
 
@@ -223,10 +221,12 @@ void heartbeat(struct reb_simulation* sim){
       double phi_p;
       reb_tools_xyz_to_spherical(nt_rot, &mag_p, &theta_p, &phi_p);
 
+      //./printf("%f,%f,%f\n",sim->t,at/planet->r, ot.e);
+
       FILE* sf = fopen(title, "a");
-      fprintf(sf, "%f,%e,%e,%e,%e,%e,%e,%f\n",sim->t,nt_hat.x,nt_hat.y,nt_hat.z,theta_p,phi_p,at/planet->r, ot.e);
+      //fprintf(sf, "%f,%e,%e,%e,%e,%e,%e,%f\n",sim->t,nt_hat.x,nt_hat.y,nt_hat.z,theta_p,phi_p,at/planet->r, ot.e);
       //fprintf(sf, "%f,%e,%e,%e,%e,%e,%e,%e,%e,%e\n",sim->t,ohat.x, ohat.y, ohat.z, nf_hat.x, nf_hat.y, nf_hat.z, nt_hat.x, nt_hat.y, nt_hat.z);
-      //fprintf(sf, "%f,%f,%f,%f,%f\n",sim->t,Omega_p_inv->x, Omega_p_inv->y,Omega_p_inv->z,of.a);
+      fprintf(sf, "%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",sim->t,Omega_p_inv->x, Omega_p_inv->y,Omega_p_inv->z,nt_hat.x,nt_hat.y,nt_hat.z,theta_p,phi_p,at/planet->r, ot.e);
       fclose(sf);
 
       //printf("\n%f,%f,%f,%f,%f\n",sim->t,theta_p*180./M_PI,phi_p*180./M_PI,at/planet->r,ot.e);
@@ -234,7 +234,7 @@ void heartbeat(struct reb_simulation* sim){
     }
 
 
-    //if(reb_simulation_output_check(sim, 10.)){        // outputs to the screen
+    //if(reb_simulation_output_check(sim, 100.)){        // outputs to the screen
     //    reb_simulation_output_timing(sim, tmax);
     //}
 

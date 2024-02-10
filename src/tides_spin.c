@@ -322,7 +322,7 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
 
             }
           }
-        */
+       */ 
           Nspins += 1;
       }
     }
