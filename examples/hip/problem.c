@@ -211,8 +211,11 @@ int main(int argc, char* argv[]){
     const double alpha_init = 0.5 * (star.m / mf) * pow((rf / af), 3.) * (planet_k2 / 0.25) * spin_p;
     const double alpha_final = 0.5 * (star.m/mf) * pow((rf / orf.a), 3.) * (planet_k2 / 0.25) * magp;
 
+    const double new_J2 = (magp * magp * magp * rf * rf * rf) / (3. * sim->G * mf) * planet_k2;
+    const double laplace_radius = pow(new_J2 * rf * rf * orf.a * orf.a * orf.a * pow((1. - orf.e * orf.e),3./2.) * (mf/star.m), 1./5.);
+
     FILE* sf = fopen(title_stats, "a");
-    fprintf(sf, "%d,%f,%f,%f,%f,%f,%e,%e,%e\n", ind,  me/mearth, mf/mearth, thetap * 180./M_PI, planet_k2,spin_p_hours * 24., J2, alpha_init, alpha_final);
+    fprintf(sf, "%d,%f,%f,%f,%f,%f,%f,%f,%e,%e,%e\n", ind,  me/mearth, mf/mearth,rf/4.259e-5,thetap * 180./M_PI, planet_k2,spin_p_hours * 24., laplace_radius/rf,J2, alpha_init, alpha_final);
     fclose(sf);
         //stable = 0;
         //system(title_remove);
