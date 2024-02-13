@@ -96,15 +96,15 @@ double rebx_curlyL(double r){
   double B = 12.8994;
   double C = -2.12471;
 
-  double rrj = log10(r/4.676e-4);
+  double rrj = log(r/4.676e-4);
 
-  double exponent = A * rrj + B * rrj + C;
-  double conversion = 1.12234e-11;
+  double exponent = A * rrj * rrj + B * rrj + C;
+  double lsun = 1.12234e-11;
 
-  return pow(10., exponent) * conversion;
+  return pow(10., exponent) * lsun;
 }
 
-double rebx_calculate_radius_inflation(struct reb_particle* source, struct reb_particle* target, const double G, const double k2, const double tau, const struct reb_vec3d Omega, const double dOmega, const double I){
+double rebx_calculate_radius_inflation(struct reb_particle* source, struct reb_particle* target, const double G, const double k2, const double tau, const struct reb_vec3d Omega){
   const double ms = source->m;
   const double Rs = source->r;
   const double mt = target->m;
@@ -163,7 +163,7 @@ double rebx_calculate_radius_inflation(struct reb_particle* source, struct reb_p
   }
 
   double alpha = 0.261;// Hard coded for now
-  double denominator = 0.5 * G * mt * mt / (Rs * Rs) + alpha * mt * Rs * magp * magp;
+  double denominator = 0.5 * G * ms * ms / (Rs * Rs) + alpha * ms * Rs * magp * magp;
 
   // Curly L
   double curlyL = -1. * rebx_curlyL(Rs);
@@ -172,7 +172,7 @@ double rebx_calculate_radius_inflation(struct reb_particle* source, struct reb_p
   struct reb_vec3d v3_1 = reb_vec3d_mul(tidal_force, mu_ij);
   struct reb_vec3d v3_22 = reb_vec3d_mul(reb_vec3d_cross(Omega, dvec), -1.);
   struct reb_vec3d v3_2 = reb_vec3d_add(vvec, v3_22);
-  const double t3 = reb_vec3d_dot(v3_1, v3_1);
+  const double t3 = reb_vec3d_dot(v3_1, v3_2);
 
   double retval = 0.5 * (curlyL + t3) / denominator;
   return retval;
@@ -337,7 +337,7 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
           // Radius inflation
           if (i != 0){
             double dOmega = sqrt(yDot[4*Nspins]*yDot[4*Nspins]+yDot[4*Nspins+1]*yDot[4*Nspins+1]+yDot[4*Nspins+2]*yDot[4*Nspins+2]);
-            yDot[4*Nspins + 3] = rebx_calculate_radius_inflation(pi, &sim->particles[0], sim->G, *k2, *tau, Omega, dOmega, *I);//
+            yDot[4*Nspins + 3] = rebx_calculate_radius_inflation(pi, &sim->particles[0], sim->G, *k2, *tau, Omega);//
             //printf("%d %e\n", i, yDot[4*Nspins + 3]);
             //exit(1);
           }
