@@ -16,12 +16,23 @@ int first_set=1;
 int ntest=3;
 double mf;
 double me;
+double J2;
 
-double planet_as[10] = {0.1283,0.2061,0.88,1.06,1.37};
-double planet_aerrs[10] = {1.5e-3, 2.4e-3, 0.01, 0.03, 0.02};
+//double planet_as[10] = {0.1283,0.2061,0.88,1.06,1.37};
+//double planet_aerrs[10] = {1.5e-3, 2.4e-3, 0.01, 0.03, 0.02};
+
+double mes[3] = {7., 8., 9.};
+double mfs[3] = {9., 10.5, 12.};
+
+struct tuple{
+  double em;
+  double fm;
+};
+
+struct tuple TUPLES[10];
 
 //char title[100] = "28mt_";
-char title_stats[100] = "212mt_stats";
+char title_stats[100] = "213_stable_mt_stats";
 //char title_remove[100] = "rm -v 28mt_";
 
 int main(int argc, char* argv[]){
@@ -29,17 +40,28 @@ int main(int argc, char* argv[]){
     sim->integrator         = REB_INTEGRATOR_WHFAST;
     sim->heartbeat          = heartbeat;
 
+    // Populate tuples
+
+    for (unsigned int i = 0; i < 3; i++){
+      for (unsigned int j = 0; j < 3; j++){
+        int tind = i*3+j;
+        TUPLES[tind].em = mes[i];
+        TUPLES[tind].fm = mfs[j];
+      }
+    }
+
     ind = 0;
-    //double ob = 0;
-    if (argc == 2){
+    struct tuple masses = {.em=0., .fm=0.};
+    if (argc == 3){
       //strcat(title, argv[1]);
       //strcat(title_remove, argv[1]);
-      ind = atoi(argv[1]);
-      //ob = atoi(argv[2]);
+      ind = atoi(argv[2]);
+      masses = TUPLES[atoi(argv[1])];
     }
 
     sim->rand_seed = ind;
     double delta = 1.02;//reb_random_uniform(sim, 1.02, 1.03);
+
 
     // Initial conditions
     // Santerne et al 2019
@@ -54,38 +76,38 @@ int main(int argc, char* argv[]){
 
     // b
     double mb = 6.89 * mearth;
-    double eb = 0.07;
+    double eb = 0.0;
     double ab = 0.1283;
     double ib = reb_random_rayleigh(sim, ri);
     double tb = reb_random_uniform(sim, 0, 2 * M_PI);
     //double Mb = reb_random_uniform(sim, 0, 2 * M_PI);
 
     double mc = 4.4 * mearth;
-    double ec = 0.04;
+    double ec = 0.0;
     double ac = 0.2061;
     double ic = reb_random_rayleigh(sim, ri);
     double tc = reb_random_uniform(sim, 0, 2 * M_PI);
     //double Mc = reb_random_uniform(sim, 0, 2 * M_PI);
 
-    double md = 4.6 * mearth;
-    double ed = 0.06;
+    double md = 1.0 * mearth;
+    double ed = 0.0;
     double ad = 0.88 * 3.;
     double id = reb_random_rayleigh(sim, ri);
     double td = reb_random_uniform(sim, 0, 2 * M_PI);
     //double Md = reb_random_uniform(sim, 0, 2 * M_PI);
 
-    me = reb_random_uniform(sim, 12. - 5., 12. + 5.) * mearth;
-    double ee = 0.14;
+    me = masses.fm * mearth;//reb_random_uniform(sim, 12. - 5., 12. + 5.) * mearth;
+    double ee = 0.0;
     double ae = ad * pow(4./3., 2./3.) * delta;//1.06;//reb_random_uniform(sim, 1.06 - 0.02, 1.06 + 0.03);
     double ie = reb_random_rayleigh(sim, ri);
     double te = reb_random_uniform(sim, 0, 2 * M_PI);
     //double Me = reb_random_uniform(sim, 0, 2 * M_PI);
 
     // This is the one we care abotu
-    mf = reb_random_uniform(sim, 12. - 3., 12. + 3.) * mearth;
+    mf = masses.em * mearth;//reb_random_uniform(sim, 12. - 3., 12. + 3.) * mearth;
     double rho = 1.0 * pow(1.496e13, 3.) / (1.989e33); // 1 g/cm3 to rebound units
     double rf = pow(((3. * mf) / (4. * M_PI * rho)), 1./3.);
-    double ef = 0.004;
+    double ef = 0.0;
     double af = ae * pow(3./2.,2./3.) * delta;//1.37;//reb_random_uniform(sim, 1.37 - 0.02, 1.37 + 0.02);
     double incf = reb_random_rayleigh(sim, ri);
     double tf = reb_random_uniform(sim, 0, 2 * M_PI);
@@ -128,6 +150,8 @@ int main(int argc, char* argv[]){
     const double phi_p = 180. * M_PI / 180;
     struct reb_vec3d Omega_sv = reb_tools_spherical_to_xyz(spin_p, theta_p, phi_p);
     rebx_set_param_vec3d(rebx, &sim->particles[5].ap, "Omega", Omega_sv);
+
+    J2 = (spin_p * spin_p * rf * rf * rf) / (3. * sim->G * mf) * planet_k2;
 
     const double planet_Q = 1e5;
     //struct reb_orbit orb = reb_orbit_from_particle(sim->G, sim->particles[5], sim->particles[0]);
@@ -188,7 +212,7 @@ int main(int argc, char* argv[]){
     const double alpha_final = 0.5 * (star.m/mf) * pow((rf / orf.a), 3.) * (planet_k2 / 0.25) * magp;
 
     FILE* sf = fopen(title_stats, "a");
-    fprintf(sf, "%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%e,%e\n", ind, orbe.P/orbd.P, orf.P/orbe.P, thetap * 180./M_PI, planet_k2, me/mearth, mf/mearth, spin_p_hours * 24., 365./magp, orbe.e, alpha_init, alpha_final);
+    fprintf(sf, "%d,%f,%f,%f,%f,%f,%e,%e,%e\n", ind,  me/mearth, mf/mearth, thetap * 180./M_PI, planet_k2,spin_p_hours * 24., J2, alpha_init, alpha_final);
     fclose(sf);
         //stable = 0;
         //system(title_remove);
