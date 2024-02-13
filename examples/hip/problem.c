@@ -32,7 +32,7 @@ struct tuple{
 struct tuple TUPLES[10];
 
 //char title[100] = "28mt_";
-char title_stats[100] = "213_stable_mt_stats";
+char title_stats[100] = "213_stable_mt_stats_fix";
 //char title_remove[100] = "rm -v 28mt_";
 
 int main(int argc, char* argv[]){
@@ -96,7 +96,7 @@ int main(int argc, char* argv[]){
     double td = reb_random_uniform(sim, 0, 2 * M_PI);
     //double Md = reb_random_uniform(sim, 0, 2 * M_PI);
 
-    me = masses.fm * mearth;//reb_random_uniform(sim, 12. - 5., 12. + 5.) * mearth;
+    me = masses.em * mearth;//reb_random_uniform(sim, 12. - 5., 12. + 5.) * mearth;
     double ee = 0.0;
     double ae = ad * pow(4./3., 2./3.) * delta;//1.06;//reb_random_uniform(sim, 1.06 - 0.02, 1.06 + 0.03);
     double ie = reb_random_rayleigh(sim, ri);
@@ -104,7 +104,7 @@ int main(int argc, char* argv[]){
     //double Me = reb_random_uniform(sim, 0, 2 * M_PI);
 
     // This is the one we care abotu
-    mf = masses.em * mearth;//reb_random_uniform(sim, 12. - 3., 12. + 3.) * mearth;
+    mf = masses.fm * mearth;//reb_random_uniform(sim, 12. - 3., 12. + 3.) * mearth;
     double rho = 1.0 * pow(1.496e13, 3.) / (1.989e33); // 1 g/cm3 to rebound units
     double rf = pow(((3. * mf) / (4. * M_PI * rho)), 1./3.);
     double ef = 0.0;
