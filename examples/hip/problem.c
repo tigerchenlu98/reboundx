@@ -20,9 +20,9 @@ double me;
 double planet_as[10] = {0.1283,0.2061,0.88,1.06,1.37};
 double planet_aerrs[10] = {1.5e-3, 2.4e-3, 0.01, 0.03, 0.02};
 
-char title[100] = "28mt_";
-char title_stats[100] = "28mt_stats";
-char title_remove[100] = "rm -v 28mt_";
+//char title[100] = "28mt_";
+char title_stats[100] = "212mt_stats";
+//char title_remove[100] = "rm -v 28mt_";
 
 int main(int argc, char* argv[]){
     struct reb_simulation* sim = reb_simulation_create();
@@ -32,14 +32,14 @@ int main(int argc, char* argv[]){
     ind = 0;
     //double ob = 0;
     if (argc == 2){
-      strcat(title, argv[1]);
-      strcat(title_remove, argv[1]);
+      //strcat(title, argv[1]);
+      //strcat(title_remove, argv[1]);
       ind = atoi(argv[1]);
       //ob = atoi(argv[2]);
     }
 
     sim->rand_seed = ind;
-    double delta = reb_random_uniform(sim, 1.02, 1.03);
+    double delta = 1.02;//reb_random_uniform(sim, 1.02, 1.03);
 
     // Initial conditions
     // Santerne et al 2019
@@ -69,7 +69,7 @@ int main(int argc, char* argv[]){
 
     double md = 4.6 * mearth;
     double ed = 0.06;
-    double ad = 0.88 * reb_random_uniform(sim, 2., 3.);
+    double ad = 0.88 * 3.;
     double id = reb_random_rayleigh(sim, ri);
     double td = reb_random_uniform(sim, 0, 2 * M_PI);
     //double Md = reb_random_uniform(sim, 0, 2 * M_PI);
@@ -77,8 +77,6 @@ int main(int argc, char* argv[]){
     me = reb_random_uniform(sim, 12. - 5., 12. + 5.) * mearth;
     double ee = 0.14;
     double ae = ad * pow(4./3., 2./3.) * delta;//1.06;//reb_random_uniform(sim, 1.06 - 0.02, 1.06 + 0.03);
-    //printf("%f %f\n", ad, ae);
-    //exit(1);
     double ie = reb_random_rayleigh(sim, ri);
     double te = reb_random_uniform(sim, 0, 2 * M_PI);
     //double Me = reb_random_uniform(sim, 0, 2 * M_PI);
@@ -119,11 +117,12 @@ int main(int argc, char* argv[]){
     struct rebx_force* effect = rebx_load_force(rebx, "tides_spin");
     rebx_add_force(rebx, effect);
 
-    double planet_k2 = reb_random_uniform(sim, 0.4, 0.6);
+    double planet_k2 = reb_random_uniform(sim, 0.1, 0.8);
     rebx_set_param_double(rebx, &sim->particles[5].ap, "k2", planet_k2);
     rebx_set_param_double(rebx, &sim->particles[5].ap, "I", 0.25 * mf * rf * rf);
 
-    const double spin_period_p = ((10. / 24.) / 365.) * 2. * M_PI; // hours to reb years
+    const double spin_p_hours = reb_random_uniform(sim, 5./24., 1.);
+    const double spin_period_p = (spin_p_hours / 365.) * 2. * M_PI; // hours to reb years
     const double spin_p = (2. * M_PI) / spin_period_p;
     const double theta_p = 1. * M_PI / 180.;
     const double phi_p = 180. * M_PI / 180;
@@ -184,8 +183,12 @@ int main(int argc, char* argv[]){
 
     struct reb_orbit orbd = reb_orbit_from_particle(sim->G, sim->particles[3], sim->particles[0]);
     struct reb_orbit orbe = reb_orbit_from_particle(sim->G, sim->particles[4], sim->particles[0]);
+
+    const double alpha_init = 0.5 * (star.m / mf) * pow((rf / af), 3.) * (planet_k2 / 0.25) * spin_p;
+    const double alpha_final = 0.5 * (star.m/mf) * pow((rf / orf.a), 3.) * (planet_k2 / 0.25) * magp;
+
     FILE* sf = fopen(title_stats, "a");
-    fprintf(sf, "%d %f %f %f %f %f %f\n", ind, thetap * 180./M_PI, orbe.P/orbd.P, orf.P/orbe.P, orbd.a, orbe.a, orf.a);
+    fprintf(sf, "%d,%f,%f,%f,%f,%f,%f,%f,%f,%f,%e,%e\n", ind, orbe.P/orbd.P, orf.P/orbe.P, thetap * 180./M_PI, planet_k2, me/mearth, mf/mearth, spin_p_hours * 24., 365./magp, orbe.e, alpha_init, alpha_final);
     fclose(sf);
         //stable = 0;
         //system(title_remove);
