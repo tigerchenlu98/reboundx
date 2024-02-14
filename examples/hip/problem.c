@@ -105,7 +105,7 @@ int main(int argc, char* argv[]){
 
     // This is the one we care abotu
     mf = masses.fm * mearth;//reb_random_uniform(sim, 12. - 3., 12. + 3.) * mearth;
-    double rho = 1.0 * pow(1.496e13, 3.) / (1.989e33); // 1 g/cm3 to rebound units
+    double rho = 5.0 * pow(1.496e13, 3.) / (1.989e33); // 5 g/cm3 to rebound units
     double rf = pow(((3. * mf) / (4. * M_PI * rho)), 1./3.);
     double ef = 0.0;
     double af = ae * pow(3./2.,2./3.) * delta;//1.37;//reb_random_uniform(sim, 1.37 - 0.02, 1.37 + 0.02);
@@ -208,14 +208,14 @@ int main(int argc, char* argv[]){
     struct reb_orbit orbd = reb_orbit_from_particle(sim->G, sim->particles[3], sim->particles[0]);
     struct reb_orbit orbe = reb_orbit_from_particle(sim->G, sim->particles[4], sim->particles[0]);
 
-    const double alpha_init = 0.5 * (star.m / mf) * pow((rf / af), 3.) * (planet_k2 / 0.25) * spin_p;
-    const double alpha_final = 0.5 * (star.m/mf) * pow((rf / orf.a), 3.) * (planet_k2 / 0.25) * magp;
+    //const double alpha_init = 0.5 * (star.m / mf) * pow((rf / af), 3.) * (planet_k2 / 0.25) * spin_p;
+    //const double alpha_final = 0.5 * (star.m/mf) * pow((rf / orf.a), 3.) * (planet_k2 / 0.25) * magp;
 
     const double new_J2 = (magp * magp * magp * rf * rf * rf) / (3. * sim->G * mf) * planet_k2;
     const double laplace_radius = pow(new_J2 * rf * rf * orf.a * orf.a * orf.a * pow((1. - orf.e * orf.e),3./2.) * (mf/star.m), 1./5.);
 
     FILE* sf = fopen(title_stats, "a");
-    fprintf(sf, "%d,%f,%f,%f,%f,%f,%f,%f,%e,%e,%e\n", ind,  me/mearth, mf/mearth,rf/4.259e-5,thetap * 180./M_PI, planet_k2,spin_p_hours * 24., laplace_radius/rf,J2, alpha_init, alpha_final);
+    fprintf(sf, "%d,%f,%f,%f,%f,%f,%f,%f,%e\n", ind,  me/mearth, mf/mearth,rf/4.259e-5,thetap * 180./M_PI, planet_k2,spin_p_hours * 24., laplace_radius/rf,J2);
     fclose(sf);
         //stable = 0;
         //system(title_remove);
