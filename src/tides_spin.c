@@ -99,7 +99,7 @@ double rebx_curlyL(double r){
   double rrj = log(r/4.676e-4);
 
   double exponent = A * rrj * rrj + B * rrj + C;
-  double lsun = 1.12234e-11;
+  double lsun = 2.84293e-13; // 10^27 erg/s to rebound units
 
   return pow(10., exponent) * lsun;
 }
@@ -166,7 +166,7 @@ double rebx_calculate_radius_inflation(struct reb_particle* source, struct reb_p
   double denominator = 0.5 * G * ms * ms / (Rs * Rs) + alpha * ms * Rs * magp * magp;
 
   // Curly L
-  double curlyL = -1. * rebx_curlyL(Rs);
+  double curlyL = -1.0 * rebx_curlyL(Rs);
 
   // Tidal force
   struct reb_vec3d v3_1 = reb_vec3d_mul(tidal_force, mu_ij);
@@ -280,7 +280,7 @@ static void rebx_spin_derivatives(struct reb_ode* const ode, double* const yDot,
     unsigned int Nspins = 0;
     const int N_real = sim->N - sim->N_var;
     for (int i=0; i<N_real; i++){
-        struct reb_particle* pi = &sim->particles[i]; // target particle
+        struct reb_particle* pi = &sim->particles[i]; // source particle
         const double* k2 = rebx_get_param(rebx, pi->ap, "k2"); // This is slow
         const double* tau = rebx_get_param(rebx, pi->ap, "tau");
         const double* I = rebx_get_param(rebx, pi->ap, "I");

@@ -14,14 +14,17 @@ double obl(struct reb_vec3d v1, struct reb_vec3d v2){
   return acos(reb_vec3d_dot(v1,v2) / (sqrt(reb_vec3d_length_squared(v1)) * sqrt(reb_vec3d_length_squared(v2))));
 }
 
-char title[100] = "test_bigr";
-//char title_stats[100] = "zlk1212_stats";
-char title_remove[100] = "rm -v test_bigr";
+//char title[100] = "test_bigr";
+char title_stats[100] = "zlk218_stats";
+//char title_remove[100] = "rm -v test_bigr";
 int ind;
 int printed_stats=1;
 double planet_a;
+double rfac;
+double angle;
+double planet_k2;
 
-double tmax = 1e6*2*M_PI;
+double tmax = 1e9*2*M_PI;
 
 // eccentricity functions
 double h3(double e){
@@ -57,13 +60,14 @@ int main(int argc, char* argv[]){
  // Yee et al 2018
  struct reb_particle planet = {0};
  double planet_m  = reb_random_uniform(sim, 0.0736 - 0.0047, 0.0736 + 0.0047) * 9.55e-4;
- double planet_r = 10. * 4.2588e-5;//reb_random_uniform(sim, 4.36 - 0.06, 4.36 + 0.06) * 4.2588e-5;
- planet_a = 0.5;//reb_random_uniform(sim, 0.5, 1.5);
+ rfac = reb_random_uniform(sim, 1.5, 2.5);
+ double planet_r = rfac * 4.36 * 4.2588e-5;//reb_random_uniform(sim, 4.36 - 0.06, 4.36 + 0.06) * 4.2588e-5;
+ planet_a = reb_random_uniform(sim, 0.3, 0.7);
  double planet_e = 0.01;//reb_random_uniform(sim, 0.01, 0.1);
  double planet_Omega = (117.1 - 180.) * (M_PI / 180.); //reb_random_uniform(sim, 0., 2 * M_PI);
  double planet_omega = 0.;//reb_random_uniform(sim, 0.0, 2 * M_PI);
  double planet_f = 0;//reb_random_uniform(sim, 0.0, 2 * M_PI);
- double planet_inc = 30. * M_PI/180.;//reb_random_uniform(sim, 6. * M_PI/180., 39. * M_PI/180.);
+ double planet_inc = reb_random_uniform(sim, 6. * M_PI/180., 39. * M_PI/180.);
  //double planet_inc = 106. * M_PI/180.;
 
  // HAT-P-11c - treated as a point particle
@@ -81,8 +85,8 @@ int main(int argc, char* argv[]){
  // Reset until over Kozai inclination
    struct reb_orbit o1 = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
    struct reb_orbit o2 = reb_orbit_from_particle(sim->G, sim->particles[2], sim->particles[0]);
-   double angle = acos(reb_vec3d_dot(o1.hvec, o2.hvec) / (sqrt(reb_vec3d_length_squared(o1.hvec)) * sqrt(reb_vec3d_length_squared(o2.hvec))));
-   printf("%f\n", angle * 180./M_PI);
+   angle = acos(reb_vec3d_dot(o1.hvec, o2.hvec) / (sqrt(reb_vec3d_length_squared(o1.hvec)) * sqrt(reb_vec3d_length_squared(o2.hvec))));
+   //printf("%f\n", angle * 180./M_PI);
 
  // Initial conditions
   // Setup constants
@@ -108,10 +112,10 @@ int main(int argc, char* argv[]){
   const double solar_spin_period = 25. * 2. * M_PI / 365.;
   const double solar_spin = (2 * M_PI) / solar_spin_period;
   rebx_set_param_vec3d(rebx, &sim->particles[0].ap, "Omega", (struct reb_vec3d){.z=solar_spin}); // Omega_x = Omega_y = 0 by default
-  rebx_set_param_double(rebx, &sim->particles[0].ap, "tau", 1e-8);
+  rebx_set_param_double(rebx, &sim->particles[0].ap, "tau", 1e-10);
 
   // Planet
-  double planet_k2 = 0.4;//reb_random_uniform(sim, 0.4, 0.8);
+  planet_k2 = reb_random_uniform(sim, 0.1, 0.8);
   rebx_set_param_double(rebx, &sim->particles[1].ap, "k2", planet_k2);
   rebx_set_param_double(rebx, &sim->particles[1].ap, "I", 0.25 * planet_m * planet_r * planet_r);
 
@@ -121,7 +125,7 @@ int main(int argc, char* argv[]){
   const double phi_p = 0. * M_PI / 180;
   struct reb_vec3d Omega_sv = reb_tools_spherical_to_xyz(spin_p, theta_p, phi_p);
   rebx_set_param_vec3d(rebx, &sim->particles[1].ap, "Omega", Omega_sv);
-  rebx_set_param_double(rebx, &sim->particles[1].ap, "tau", 1e-4);
+  rebx_set_param_double(rebx, &sim->particles[1].ap, "tau", 1e-7);
 
 
   // add GR precession:
@@ -144,24 +148,18 @@ int main(int argc, char* argv[]){
   //system("rm -v test.txt");        // delete previous output file
   //system(title_remove);
 
-  FILE* of = fopen(title, "w");
-  fprintf(of, "#Seed: %d,%e,%e,%e,%e,%e,%e,%e,%e\n", index, planet_m, planet_r, planet_a, planet_e, planet_omega, planet_inc, planet_f, planet_k2);
-  fprintf(of, "t,a1,i1,e1,p_ob,a2,i2,e2,pert_ob,mi\n");
+  //FILE* of = fopen(title, "w");
+  //fprintf(of, "#Seed: %d,%e,%e,%e,%e,%e,%e,%e,%e\n", index, planet_m, planet_r, planet_a, planet_e, planet_omega, planet_inc, planet_f, planet_k2);
+  //fprintf(of, "t,a1,i1,e1,p_ob,a2,i2,e2,pert_ob,mi\n");
   //fprintf(of, "t,a1,i1,e1,p_ob,mag_p,theta_p,phi_p\n");
   //"t,ssx,ssy,ssz,mag1,theta1,phi1,a1,e1,nx1,ny1,nz1,nOm1,pom1,a2,e2,i2,Om2,pom2,nx2,ny2,nz2,p_ob,pert_ob,mi\n");
-  fclose(of);
+  //fclose(of);
 
   reb_simulation_integrate(sim, tmax);
-  /*
-  for (unsigned int i = 0; i < sim->N; i++){
-    struct reb_particle* p = &sim->particles[i];
-    printf("%d %e %e %e %e %e %e\n", i, p->x,p->y,p->z,p->vx,p->vy,p->vz);
-    if (i == 0 || i == 1){
-      struct reb_vec3d* Omega = rebx_get_param(rebx, p->ap, "Omega");
-      printf("%e %e %e\n", Omega->x, Omega->y, Omega->z);
-    }
-  }
-  */
+  struct reb_orbit orb = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
+  FILE* sf = fopen(title_stats, "a");
+  fprintf(sf, "%d,%f,%f,%f,%f,%f,1\n", ind, orb.e, sim->particles[1].r / planet_r, planet_a, planet_k2, angle*180./M_PI);
+  fclose(sf);
   rebx_free(rebx);
   reb_simulation_free(sim);
 }
@@ -193,7 +191,7 @@ void heartbeat(struct reb_simulation* sim){
    double rdot = prefactor * (ms / mp) * pow((re / ob.a), 5.);
 */
    // Output spin and orbital information to file
-
+/*
    if(reb_simulation_output_check(sim, 10. * 2 * M_PI)){        // outputs every 100 years
      struct rebx_extras* const rebx = sim->extras;
 
@@ -252,9 +250,17 @@ void heartbeat(struct reb_simulation* sim){
      fclose(of);
 
    }
+*/
 
+   //if(reb_simulation_output_check(sim, 20.*M_PI)){        // outputs to the screen
+  //     reb_simulation_output_timing(sim, tmax);
+   //}
 
-   if(reb_simulation_output_check(sim, 20.*M_PI)){        // outputs to the screen
-       reb_simulation_output_timing(sim, tmax);
+   struct reb_orbit orb = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
+   if (orb.a < 0.05){
+     FILE* sf = fopen(title_stats, "a");
+     fprintf(sf, "%d,%f,%f,%f,%f,%f,0\n", ind, orb.e, rfac, planet_a, planet_k2, angle*180./M_PI);
+     fclose(sf);
+     exit(1);
    }
 }
