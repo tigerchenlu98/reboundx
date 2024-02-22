@@ -31,9 +31,9 @@ struct tuple{
 
 struct tuple TUPLES[10];
 
-//char title[100] = "28mt_";
-char title_stats[100] = "213_stable_mt_stats_fix";
-//char title_remove[100] = "rm -v 28mt_";
+//char title[100] = "ls";
+char title_stats[100] = "222_mt_stats";
+//char title_remove[100] = "rm -v ls";
 
 int main(int argc, char* argv[]){
     struct reb_simulation* sim = reb_simulation_create();
@@ -41,7 +41,7 @@ int main(int argc, char* argv[]){
     sim->heartbeat          = heartbeat;
 
     // Populate tuples
-
+/*
     for (unsigned int i = 0; i < 3; i++){
       for (unsigned int j = 0; j < 3; j++){
         int tind = i*3+j;
@@ -52,11 +52,12 @@ int main(int argc, char* argv[]){
 
     ind = 0;
     struct tuple masses = {.em=0., .fm=0.};
-    if (argc == 3){
+    */
+    if (argc == 2){
       //strcat(title, argv[1]);
       //strcat(title_remove, argv[1]);
-      ind = atoi(argv[2]);
-      masses = TUPLES[atoi(argv[1])];
+      ind = atoi(argv[1]);
+      //masses = TUPLES[atoi(argv[1])];
     }
 
     sim->rand_seed = ind;
@@ -91,21 +92,22 @@ int main(int argc, char* argv[]){
 
     double md = 1.0 * mearth;
     double ed = 0.0;
-    double ad = 0.88 * 3.;
+    double ad = 0.88 * 3.0;
     double id = reb_random_rayleigh(sim, ri);
     double td = reb_random_uniform(sim, 0, 2 * M_PI);
     //double Md = reb_random_uniform(sim, 0, 2 * M_PI);
 
-    me = masses.em * mearth;//reb_random_uniform(sim, 12. - 5., 12. + 5.) * mearth;
+    me = reb_random_uniform(sim, 7., 9.) * mearth;
     double ee = 0.0;
     double ae = ad * pow(4./3., 2./3.) * delta;//1.06;//reb_random_uniform(sim, 1.06 - 0.02, 1.06 + 0.03);
     double ie = reb_random_rayleigh(sim, ri);
     double te = reb_random_uniform(sim, 0, 2 * M_PI);
     //double Me = reb_random_uniform(sim, 0, 2 * M_PI);
 
-    // This is the one we care abotu
-    mf = masses.fm * mearth;//reb_random_uniform(sim, 12. - 3., 12. + 3.) * mearth;
-    double rho = 5.0 * pow(1.496e13, 3.) / (1.989e33); // 5 g/cm3 to rebound units
+    // This is the one we care about
+    mf = reb_random_uniform(sim, 9., 12.) * mearth;
+    double rho_cm = reb_random_uniform(sim, 3.0, 5.5);
+    double rho = rho_cm * pow(1.496e13, 3.) / (1.989e33); // 5 g/cm3 to rebound units
     double rf = pow(((3. * mf) / (4. * M_PI * rho)), 1./3.);
     double ef = 0.0;
     double af = ae * pow(3./2.,2./3.) * delta;//1.37;//reb_random_uniform(sim, 1.37 - 0.02, 1.37 + 0.02);
@@ -139,11 +141,11 @@ int main(int argc, char* argv[]){
     struct rebx_force* effect = rebx_load_force(rebx, "tides_spin");
     rebx_add_force(rebx, effect);
 
-    double planet_k2 = reb_random_uniform(sim, 0.1, 0.8);
+    double planet_k2 = reb_random_uniform(sim, 0.6, 1.0);
     rebx_set_param_double(rebx, &sim->particles[5].ap, "k2", planet_k2);
     rebx_set_param_double(rebx, &sim->particles[5].ap, "I", 0.25 * mf * rf * rf);
 
-    const double spin_p_hours = reb_random_uniform(sim, 5./24., 1.);
+    const double spin_p_hours = reb_random_uniform(sim, 1./24., 5./24.);
     const double spin_period_p = (spin_p_hours / 365.) * 2. * M_PI; // hours to reb years
     const double spin_p = (2. * M_PI) / spin_period_p;
     const double theta_p = 1. * M_PI / 180.;
@@ -160,31 +162,28 @@ int main(int argc, char* argv[]){
 
 
     struct reb_vec3d newz = reb_vec3d_add(reb_simulation_angular_momentum(sim), rebx_tools_spin_angular_momentum(rebx));
+    //struct reb_vec3d newz = reb_simulation_angular_momentum(sim);
     struct reb_vec3d newx = reb_vec3d_cross((struct reb_vec3d){.z =1}, newz);
     struct reb_rotation rot = reb_rotation_init_to_new_axes(newz, newx);
     if (isnan(rot.r)) {
       rot = reb_rotation_identity();
     }
+
     reb_simulation_move_to_com(sim);
     rebx_simulation_irotate(rebx, rot);
     rebx_spin_initialize_ode(rebx, effect);
 
-    //FILE* of = fopen(title, "w");
-    //fprintf(of, "t,magp,thetap,phip,Omegap\n");
-    //fclose(of);
-
-    //system(title_remove);
-    //FILE* of = fopen(title, "w");
-    //fprintf(of, "t,mag,theta,phi,sx,sy,sz,ad,ae,af\n");
-    //fprintf(of, "t,inc,Omega,nx\n");
-    //for (unsigned int i = 0; i < ntest; i++){
-    //fprintf(of, ",at,it");
-    //}
-    //fprintf(of, "\n");
-    //fclose(of);
-
+    const double alpha_init = 0.5 * (star.m / mf) * pow((rf / af), 3.) * (planet_k2 / 0.25) * spin_p;
+    //printf("%e\n", alpha_init);
+    //exit(1);
+/*
+    system(title_remove);
+    FILE* of = fopen(title, "w");
+    fprintf(of, "t,inc,Omega,nx\n");
+    fclose(of);
+*/
     struct reb_orbit o = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
-    tmax = 1e7*2*M_PI;//o.P * 1e8;
+    tmax = 1e3*2*M_PI;//o.P * 1e8;
     sim->dt = o.P / 10.12345;
     reb_simulation_integrate(sim, tmax);
 
@@ -205,17 +204,20 @@ int main(int argc, char* argv[]){
     double phip;
     reb_tools_xyz_to_spherical(srot, &magp, &thetap, &phip);
 
+    struct reb_orbit orbb = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
+    struct reb_orbit orbc = reb_orbit_from_particle(sim->G, sim->particles[2], sim->particles[0]);
     struct reb_orbit orbd = reb_orbit_from_particle(sim->G, sim->particles[3], sim->particles[0]);
     struct reb_orbit orbe = reb_orbit_from_particle(sim->G, sim->particles[4], sim->particles[0]);
+    struct reb_orbit orbf = reb_orbit_from_particle(sim->G, sim->particles[5], sim->particles[0]);
 
-    //const double alpha_init = 0.5 * (star.m / mf) * pow((rf / af), 3.) * (planet_k2 / 0.25) * spin_p;
-    //const double alpha_final = 0.5 * (star.m/mf) * pow((rf / orf.a), 3.) * (planet_k2 / 0.25) * magp;
+    const double alpha_final = 0.5 * (star.m/mf) * pow((rf / orf.a), 3.) * (planet_k2 / 0.25) * magp;
 
     const double new_J2 = (magp * magp * magp * rf * rf * rf) / (3. * sim->G * mf) * planet_k2;
     const double laplace_radius = pow(new_J2 * rf * rf * orf.a * orf.a * orf.a * pow((1. - orf.e * orf.e),3./2.) * (mf/star.m), 1./5.);
 
     FILE* sf = fopen(title_stats, "a");
-    fprintf(sf, "%d,%f,%f,%f,%f,%f,%f,%f,%e\n", ind,  me/mearth, mf/mearth,rf/4.259e-5,thetap * 180./M_PI, planet_k2,spin_p_hours * 24., laplace_radius/rf,J2);
+    fprintf(sf, "%d,%f,%f,%f,%f,%f,%f,%f,%f,%e,%e,%e,%f,%f,%f\n", ind, rho_cm, me/mearth, mf/mearth,rf/4.259e-5,thetap * 180./M_PI, planet_k2,spin_p_hours * 24., laplace_radius/rf,J2,alpha_init,alpha_final,orbd.a,orbe.a,orbf.a);
+    //fprintf(sf, "%d,%f,%f,%f,%f,%f\n", ind, orbb.a, orbc.a, orbd.a, orbe.a, orbf.a);
     fclose(sf);
         //stable = 0;
         //system(title_remove);
@@ -248,8 +250,8 @@ void heartbeat(struct reb_simulation* sim){
 
       //struct reb_orbit ob = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
       //struct reb_orbit oc = reb_orbit_from_particle(sim->G, sim->particles[2], sim->particles[0]);
-      struct reb_orbit od = reb_orbit_from_particle(sim->G, sim->particles[3], sim->particles[0]);
-      struct reb_orbit oe = reb_orbit_from_particle(sim->G, sim->particles[4], sim->particles[0]);
+      //struct reb_orbit od = reb_orbit_from_particle(sim->G, sim->particles[3], sim->particles[0]);
+      //struct reb_orbit oe = reb_orbit_from_particle(sim->G, sim->particles[4], sim->particles[0]);
       struct reb_orbit orf = reb_orbit_from_particle(sim->G, sim->particles[5], sim->particles[0]);
       struct reb_vec3d n1 = orf.hvec;
 
@@ -266,22 +268,24 @@ void heartbeat(struct reb_simulation* sim){
       double phi_p;
       reb_tools_xyz_to_spherical(srot, &mag_p, &theta_p, &phi_p);
 
+
       FILE* sf = fopen(title, "a");
-      fprintf(sf, "%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",sim->t,mag_p,theta_p,phi_p,srot.x,srot.y,srot.z,od.a,oe.a,orf.a,orf.Omega,sim->particles[5].m);
-      //fprintf(sf, "%f,%f,%f,%f\n",sim->t,o1.inc,o1.Omega,n1.x);
+      //fprintf(sf, "%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f\n",sim->t,mag_p,theta_p,phi_p,srot.x,srot.y,srot.z,od.a,oe.a,orf.a,orf.Omega,sim->particles[5].m);
+      fprintf(sf, "%f,%f,%f,%f\n",sim->t,orf.inc,orf.Omega,n1.x);
       fclose(sf);
 
 
     }
-    */
 
 
-    //if(reb_simulation_output_check(sim, 10.)){        // outputs to the screen
-    //    reb_simulation_output_timing(sim, tmax);
-    //}
 
+    if(reb_simulation_output_check(sim, 10.)){        // outputs to the screen
+        reb_simulation_output_timing(sim, tmax);
+    }
+*/
     struct reb_orbit orbf = reb_orbit_from_particle(sim->G, sim->particles[5], sim->particles[0]);
     if (orbf.a < 1.371 && first_set){
+      //printf("Migration halted %f\n", sim->t);
       for (unsigned int i = 3; i < sim->N; i++){
           rebx_set_param_double(sim->extras, &sim->particles[i].ap, "tau_a", INFINITY);
           rebx_set_param_double(sim->extras, &sim->particles[i].ap, "tau_e", INFINITY);
