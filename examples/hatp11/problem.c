@@ -15,7 +15,7 @@ double obl(struct reb_vec3d v1, struct reb_vec3d v2){
 }
 
 //char title[100] = "test_bigr";
-char title_stats[100] = "zlk212_stats";
+char title_stats[100] = "zlk225_stats";
 //char title_remove[100] = "rm -v test_bigr";
 int ind;
 int printed_stats=1;
@@ -26,21 +26,56 @@ double planet_k2;
 
 double tmax = 1e7*2*M_PI;
 
-// eccentricity functions
-double h3(double e){
-  return ((1. + 3. * (e*e) + 3. * (e*e*e*e))/8.) * pow((1. - e*e), -(9./2.));
+// RADIUS INFLATION
+double STEFF = 4780.;
+double SB = 3.60573e-21;
+double SLUMINOSITY;
+double FLUX_EARTH;
+
+double get_flux(double r, double l){
+    return l / (4. * M_PI * r * r);
+}
+double R_EARTH = 4.259e-5;
+double SUN_TEFF = 5780;
+
+double C0 = 0.131;
+
+double T1_Cs[4] = {-0.348,0.631,0.104,-0.179};
+
+double T2_Cs[4][4] = {{0.209,0.028,-0.168,0.008},
+                 {0.,0.086,-0.045,-0.036},
+                 {0.,0.,0.052,0.031},
+                 {0.,0.,0.,-0.009}};
+
+double get_Rp(double flux){
+    double x1 = log10(23.4);
+    double x2 = log10(0.2/0.05);
+    double x3 = log10(flux/FLUX_EARTH);
+    double x4 = log10(5/5);
+    double x_array[4] = {x1,x2,x3,x4};
+
+    double t1 = 0.;
+    for (int i = 0; i < 4; i++){
+        t1 += x_array[i] * T1_Cs[i];
+    }
+
+    double t2 = 0;
+    for (int i = 0; i < 4; i++){
+      for (int j = i; j < 4; j++){
+        t2 += T2_Cs[i][j] * x_array[i] * x_array[j];
+      }
+    }
+
+    double exponent = C0 + t1 + t2;
+
+    return pow(10., exponent) * R_EARTH;
 }
 
-double h4(double e){
-  return (1. + (15. * (e*e)/2.) + (45. * (e*e*e*e)/8.) * (5. * (e*e*e*e*e*e)/16.)) * pow((1. - e*e), -6.);
-}
-
-double h5(double e){
-  return (1. + (31. * (e*e)/2.) + (255. * (e*e*e*e)/8.) + (185. * (e*e*e*e*e*e)/16.) + (25. * (e*e*e*e*e*e*e*e)/64.)) * pow((1. - e*e), -15./2.);
-}
 
 int main(int argc, char* argv[]){
  struct reb_simulation* sim = reb_simulation_create();
+
+ FLUX_EARTH = SB * 4 * M_PI * 0.00465 * 0.004652 * pow(SUN_TEFF, 4.) / (4. * M_PI);
 
  ind = 0;
  if (argc == 2){
@@ -54,15 +89,18 @@ int main(int argc, char* argv[]){
  struct reb_particle star = {0};
  star.m = 0.809;//reb_random_uniform(sim, 0.809 - 0.03, 0.809 + 0.02);
  star.r = 0.683*0.00465;//reb_random_uniform(sim, 0.683 - 0.009, 0.683 + 0.009) * 0.00465;
+
+ double star_area = 4 * M_PI * star.r * star.r;
+ SLUMINOSITY = SB * star_area * pow(STEFF, 4.);
  reb_simulation_add(sim, star);
 
  // HAT-P-11b
  // Yee et al 2018
  struct reb_particle planet = {0};
  double planet_m  = reb_random_uniform(sim, 0.0736 - 0.0047, 0.0736 + 0.0047) * 9.55e-4;
- rfac = reb_random_uniform(sim, 1.2, 3.0);
- double planet_r = rfac * 4.36 * 4.2588e-5;//reb_random_uniform(sim, 4.36 - 0.06, 4.36 + 0.06) * 4.2588e-5;
- planet_a = reb_random_uniform(sim, 0.3, 1.0);
+ //rfac = reb_random_uniform(sim, 1.2, 3.0);
+ double planet_r = 4.36 * 4.2588e-5;// doesn't matter, instantly overwritten
+ planet_a = reb_random_uniform(sim, 0.3, 0.8);
  double planet_e = 0.01;//reb_random_uniform(sim, 0.01, 0.1);
  double planet_Omega = (117.1 - 180.) * (M_PI / 180.); //reb_random_uniform(sim, 0., 2 * M_PI);
  double planet_omega = 0.;//reb_random_uniform(sim, 0.0, 2 * M_PI);
@@ -157,39 +195,34 @@ int main(int argc, char* argv[]){
 
   reb_simulation_integrate(sim, tmax);
   struct reb_orbit orb = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
+  struct reb_vec3d n1 = orb.hvec;
+
+  struct reb_particle* sun = &sim->particles[0];
+  struct reb_vec3d* Omega_sun = rebx_get_param(rebx, sun->ap, "Omega");
+
+  double p_ob = obl(*Omega_sun, n1);
+
   FILE* sf = fopen(title_stats, "a");
-  fprintf(sf, "%d,%f,%f,%f,%f,%f,1\n", ind, orb.e, rfac, planet_a, planet_k2, angle*180./M_PI);
+  fprintf(sf, "%d,%f,%f,%f,%f,%f,%f,1\n", ind, orb.e, sim->particles[1].r / R_EARTH, planet_a, planet_k2, angle*180./M_PI,p_ob * 180./M_PI);
   fclose(sf);
   rebx_free(rebx);
   reb_simulation_free(sim);
 }
 
 void heartbeat(struct reb_simulation* sim){
-   // radius inflation
-   /*
-   struct reb_orbit ob = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
-   struct reb_vec3d* Omegap = rebx_get_param(rebx, &sim->particles[1]->ap, "Omega");
-   double magp;
-   double thetap;
-   double phip;
-   reb_tools_xyz_to_spherical(*Omegap, &magp, &thetap, &phip);
+   // Radius INFLATION
+   struct rebx_extras* const rebx = sim->extras;
+   struct reb_particle* sun = &sim->particles[0];
+   struct reb_particle* p1 = &sim->particles[1];
 
-   double eb = ob.e;
-   double ms = sim.particles[0].m;
-   double mb = sim.particles[1].m;
-   double rb = sim.particles[1].r;
-   double mu = ms * mb / (ms + mb);
-   double Qp = ; // equation 16
-   double re = ; // Equation 37
-   double qb = ;
-   double alphap = ;
-   double gamma = ;
+   double dx = p1->x - sun->x;
+   double dy = p1->y - sun->y;
+   double dz = p1->z - sun->z;
+   double d = sqrt(dx*dx+dy*dy+dz*dz);
 
-   double prefactor = (9. * mu * ob.n * ob.a * ob.a / (2 * Qp));
-   double big_term_num = magp*magp*h3(eb) - 2*ob.n*magp*h4(eb) + ob.n*ob.n*h5(eb);
-   double big_term_denom = qb * sim->G * mb**2 /rb**2 + alpha_p*mp*rp*magp*magp;
-   double rdot = prefactor * (ms / mp) * pow((re / ob.a), 5.);
-*/
+   double flux = get_flux(d, SLUMINOSITY);
+   double rad = get_Rp(flux);
+   p1->r = rad;
    // Output spin and orbital information to file
 /*
    if(reb_simulation_output_check(sim, 10. * 2 * M_PI)){        // outputs every 100 years
@@ -257,9 +290,15 @@ void heartbeat(struct reb_simulation* sim){
    //}
 
    struct reb_orbit orb = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
+   struct reb_vec3d n1 = orb.hvec;
+
+   //struct reb_particle* sun = &sim->particles[0];
+   struct reb_vec3d* Omega_sun = rebx_get_param(rebx, sun->ap, "Omega");
+
+   double p_ob = obl(*Omega_sun, n1);
    if (orb.a < 0.05){
      FILE* sf = fopen(title_stats, "a");
-     fprintf(sf, "%d,%f,%f,%f,%f,%f,0\n", ind, orb.e, rfac, planet_a, planet_k2, angle*180./M_PI);
+     fprintf(sf, "%d,%f,%f,%f,%f,%f,0\n", ind, orb.e, sim->particles[1].r / R_EARTH, planet_a, planet_k2, angle*180./M_PI);
      fclose(sf);
      exit(1);
    }
