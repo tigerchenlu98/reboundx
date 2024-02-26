@@ -15,7 +15,7 @@ double obl(struct reb_vec3d v1, struct reb_vec3d v2){
 }
 
 //char title[100] = "test_bigr";
-char title_stats[100] = "zlk225_stats";
+char title_stats[100] = "zlk226_C1_stats";
 //char title_remove[100] = "rm -v test_bigr";
 int ind;
 int printed_stats=1;
@@ -24,7 +24,7 @@ double rfac;
 double angle;
 double planet_k2;
 
-double tmax = 1e7*2*M_PI;
+double tmax = 1e2*2*M_PI;
 
 // RADIUS INFLATION
 double STEFF = 4780.;
@@ -69,6 +69,23 @@ double get_Rp(double flux){
     double exponent = C0 + t1 + t2;
 
     return pow(10., exponent) * R_EARTH;
+}
+
+// Interpolated curves
+// 0.0881, 10 Earth Mass Core
+double C1[3] = {2.15926161e-05, 4.02386269e-04, 2.18731715e-03};
+
+// 0.0881, 25 earth mass core
+double C2[3] = {3.89300825e-06, 7.32405935e-05, 5.10326839e-04};
+
+// 0.115, 25 earth mass core
+double C3[3] = {7.02292131e-06, 1.31862046e-04, 8.59659186e-04};
+
+// Sup-Neptune, icy core, 20 earth masses, 20% envelope fraction
+double C4[3] = {1.65036250e-06, 3.70396793e-05, 4.10083278e-04};
+
+double interpolate_Rp(double f){
+  return C1[0] * log10(f) * log10(f) + C1[1] * log10(f) + C1[2];
 }
 
 
@@ -221,7 +238,7 @@ void heartbeat(struct reb_simulation* sim){
    double d = sqrt(dx*dx+dy*dy+dz*dz);
 
    double flux = get_flux(d, SLUMINOSITY);
-   double rad = get_Rp(flux);
+   double rad = interpolate_Rp(flux);
    p1->r = rad;
    // Output spin and orbital information to file
 /*
@@ -298,7 +315,7 @@ void heartbeat(struct reb_simulation* sim){
    double p_ob = obl(*Omega_sun, n1);
    if (orb.a < 0.05){
      FILE* sf = fopen(title_stats, "a");
-     fprintf(sf, "%d,%f,%f,%f,%f,%f,0\n", ind, orb.e, sim->particles[1].r / R_EARTH, planet_a, planet_k2, angle*180./M_PI);
+     fprintf(sf, "%d,%f,%f,%f,%f,%f,%f,0\n", ind, orb.e, sim->particles[1].r / R_EARTH, planet_a, planet_k2, angle*180./M_PI,p_ob * 180./M_PI);
      fclose(sf);
      exit(1);
    }
