@@ -14,9 +14,9 @@ double obl(struct reb_vec3d v1, struct reb_vec3d v2){
   return acos(reb_vec3d_dot(v1,v2) / (sqrt(reb_vec3d_length_squared(v1)) * sqrt(reb_vec3d_length_squared(v2))));
 }
 
-char title[100] = "319_low_incs_";
+char title[100] = "319_high_incs_";
 char title_stats[100] = "zlk311_millholland_stats";
-char title_remove[100] = "rm -v 319_low_incs_";
+char title_remove[100] = "rm -v 319_high_incs_";
 int ind;
 int printed_stats=1;
 double planet_a;
@@ -140,7 +140,7 @@ int main(int argc, char* argv[]){
  double planet_Omega = (117.1 - 180.) * (M_PI / 180.); //reb_random_uniform(sim, 0., 2 * M_PI);
  double planet_omega = 0.;//reb_random_uniform(sim, 0.0, 2 * M_PI);
  double planet_f = 0;//reb_random_uniform(sim, 0.0, 2 * M_PI);
- double planet_inc = reb_random_uniform(sim, 6. * M_PI/180., 39. * M_PI/180.);
+ double planet_inc = reb_random_uniform(sim, 40. * M_PI/180., 100. * M_PI/180.);
 
  // HAT-P-11c - treated as a point particle
 
