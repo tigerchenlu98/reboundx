@@ -341,6 +341,10 @@ struct rebx_force* rebx_load_force(struct rebx_extras* const rebx, const char* n
         force->update_accelerations = rebx_lense_thirring;
         force->force_type = REBX_FORCE_VEL;
     }
+    else if (strcmp(name, "disk_damping") == 0){
+      force->update_accelerations = rebx_stark_force;
+      force->force_type = REBX_FORCE_VEL;
+}
     else{
         char str[300];
         sprintf(str, "REBOUNDx error: Force '%s' not found in REBOUNDx library.\n", name);
