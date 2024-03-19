@@ -14,9 +14,9 @@ double obl(struct reb_vec3d v1, struct reb_vec3d v2){
   return acos(reb_vec3d_dot(v1,v2) / (sqrt(reb_vec3d_length_squared(v1)) * sqrt(reb_vec3d_length_squared(v2))));
 }
 
-//char title[100] = "test_bigr";
+char title[100] = "test_bigr";
 char title_stats[100] = "zlk311_millholland_stats";
-//char title_remove[100] = "rm -v test_bigr";
+char title_remove[100] = "rm -v test_bigr";
 int ind;
 int printed_stats=1;
 double planet_a;
@@ -137,9 +137,9 @@ double Etide(struct reb_simulation* sim, struct reb_extras* rebx, struct reb_par
 
   const double* k2 = rebx_get_param(rebx, planet->ap, "k2");
   //const double* tau = rebx_get_param(rebx, planet->ap, "tau");
-  const double tau = 1e-9; // manually set this
-  const double invQ = (2. * o.n * tau);
-  //const double invQ = 1./1e7;
+  //const double tau = 1e-9; // manually set this
+  //const double invQ = (2. * o.n * tau);
+  const double invQ = 1./1e8;
   struct reb_vec3d* Omega = rebx_get_param(rebx, planet->ap, "Omega");
 
   const double prefactor = (m1*m2)/(m1+m2) * a*a * o.n * (m1/m2) * pow((r2/a), 5.) * 6. * (*k2) * invQ;
@@ -206,6 +206,15 @@ double millholland_radius(struct reb_simulation* sim, struct reb_extras* rebx, s
   return rad;
 }
 
+// MPB interpolation
+double MPB[5] = {3.00227021e-04, 3.73446269e-02, 1.49775430e+00, 2.46476401e+01, 1.49256117e+02};
+
+// Fit REBOUND luminosities to earth radii
+double interpolate_mpb(double lum){
+  double llum = log10(lum);
+  return (MPB[0] * llum * llum * llum * llum + MPB[1] * llum * llum * llum + MPB[2] * llum * llum + MPB[3] * llum + MPB[4]) * R_EARTH;
+}
+
 int main(int argc, char* argv[]){
  struct reb_simulation* sim = reb_simulation_create();
 
@@ -213,8 +222,8 @@ int main(int argc, char* argv[]){
 
  ind = 0;
  if (argc == 2){
-   //strcat(title, argv[1]);
-   //strcat(title_remove, argv[1]);
+   strcat(title, argv[1]);
+   strcat(title_remove, argv[1]);
    ind = atoi(argv[1]);
  }
 
@@ -234,12 +243,12 @@ int main(int argc, char* argv[]){
  double planet_m  = reb_random_uniform(sim, 0.0736 - 0.0047, 0.0736 + 0.0047) * 9.55e-4;
  //rfac = reb_random_uniform(sim, 1.2, 3.0);
  double planet_r = 4.36 * 4.2588e-5;// doesn't matter, instantly overwritten
- planet_a = reb_random_uniform(sim, 0.3, 0.5);
- double planet_e = reb_random_uniform(sim, 0.01, 0.1);
+ planet_a = 0.5;//reb_random_uniform(sim, 0.3, 0.5);
+ double planet_e = 0.1;//reb_random_uniform(sim, 0.01, 0.1);
  double planet_Omega = (117.1 - 180.) * (M_PI / 180.); //reb_random_uniform(sim, 0., 2 * M_PI);
  double planet_omega = 0.;//reb_random_uniform(sim, 0.0, 2 * M_PI);
  double planet_f = 0;//reb_random_uniform(sim, 0.0, 2 * M_PI);
- double planet_inc = reb_random_uniform(sim, 6. * M_PI/180., 39. * M_PI/180.);
+ double planet_inc = 70. * M_PI/180.;//reb_random_uniform(sim, 6. * M_PI/180., 39. * M_PI/180.);
  //double planet_inc = 106. * M_PI/180.;
 
  // HAT-P-11c - treated as a point particle
@@ -294,9 +303,9 @@ int main(int argc, char* argv[]){
   const double spin_period_p = 1. * 2. * M_PI / 365.; // days to reb years
   const double spin_p = (2. * M_PI) / spin_period_p;
   struct reb_orbit ob = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
-  struct reb_vec3d Omega_sv = reb_vec3d_mul(reb_vec3d_normalize(ob.hvec), spin_p);
+  struct reb_vec3d Omega_sv = reb_vec3d_mul(reb_vec3d_normalize(ob.hvec), ob.n);
   rebx_set_param_vec3d(rebx, &sim->particles[1].ap, "Omega", Omega_sv);
-  rebx_set_param_double(rebx, &sim->particles[1].ap, "tau", 1e-5);
+  rebx_set_param_double(rebx, &sim->particles[1].ap, "tau", 1e-4);
 
 
   // add GR precession:
@@ -317,18 +326,18 @@ int main(int argc, char* argv[]){
   rebx_spin_initialize_ode(rebx, effect);
 
   //system("rm -v test.txt");        // delete previous output file
-  //double lum = Etide(sim, rebx, &sim->particles[1], &sim->particles[0]);
-  double rad = millholland_radius(sim, rebx, &sim->particles[1], &sim->particles[0]);
+  double lum = Etide(sim, rebx, &sim->particles[1], &sim->particles[0]);
+  double rad = interpolate_mpb(lum);
   sim->particles[1].r = rad;
-  //system(title_remove);
-/*
+  system(title_remove);
+
   FILE* of = fopen(title, "w");
   fprintf(of, "#Seed: %d,%e,%e,%e,%e,%e,%e,%e,%e\n", index, planet_m, planet_r, planet_a, planet_e, planet_omega, planet_inc, planet_f, planet_k2);
   fprintf(of, "t,a1,i1,e1,p_ob,a2,i2,e2,pert_ob,mi,mag_p,theta_p,pr\n");
   //fprintf(of, "t,a1,i1,e1,p_ob,mag_p,theta_p,phi_p\n");
   //"t,ssx,ssy,ssz,mag1,theta1,phi1,a1,e1,nx1,ny1,nz1,nOm1,pom1,a2,e2,i2,Om2,pom2,nx2,ny2,nz2,p_ob,pert_ob,mi\n");
   fclose(of);
-  */
+
 
   reb_simulation_integrate(sim, tmax);
   struct reb_orbit orb = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
@@ -362,8 +371,8 @@ void heartbeat(struct reb_simulation* sim){
 
      double flux = get_flux(d, SLUMINOSITY);
      */
-     double rad = millholland_radius(sim, rebx, p1, sun);
-     //double rad = interpolate_Rp(luminosity);
+     double lum = Etide(sim, rebx, &sim->particles[1], &sim->particles[0]);
+     double rad = interpolate_mpb(lum);
      p1->r = rad;
 
 
@@ -375,17 +384,17 @@ void heartbeat(struct reb_simulation* sim){
      struct reb_vec3d* Omega_sun = rebx_get_param(rebx, sun->ap, "Omega");
 
      double p_ob = obl(*Omega_sun, n1);
-     if (orb.a < 0.05){
+     //if (orb.a < 0.05){
 
-       FILE* sf = fopen(title_stats, "a");
-       fprintf(sf, "%d,%f,%f,%f,%f,%f,%f,0\n", ind, orb.e, sim->particles[1].r / R_EARTH, planet_a, planet_k2, angle*180./M_PI,p_ob * 180./M_PI);
-       fclose(sf);
-       exit(1);
-     }
+       //FILE* sf = fopen(title_stats, "a");
+       //fprintf(sf, "%d,%f,%f,%f,%f,%f,%f,0\n", ind, orb.e, sim->particles[1].r / R_EARTH, planet_a, planet_k2, angle*180./M_PI,p_ob * 180./M_PI);
+       //fclose(sf);
+       //exit(1);
+     //}
 
    }
    // Output spin and orbital information to file
-/*
+
    if(reb_simulation_output_check(sim, 10. * 2 * M_PI)){        // outputs every 100 years
      struct rebx_extras* const rebx = sim->extras;
 
@@ -444,7 +453,7 @@ void heartbeat(struct reb_simulation* sim){
      fclose(of);
 
    }
-*/
+
 
 
    //if(reb_simulation_output_check(sim, 20.*M_PI)){        // outputs to the screen
