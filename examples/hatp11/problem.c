@@ -81,7 +81,7 @@ double Etide(struct reb_simulation* sim, struct reb_extras* rebx, struct reb_par
   //const double* tau = rebx_get_param(rebx, planet->ap, "tau");
   //const double tau = 1e-9; // manually set this
   //const double invQ = (2. * o.n * tau);
-  const double invQ = 1./1e8;
+  const double invQ = 1./3e7;
   struct reb_vec3d* Omega = rebx_get_param(rebx, planet->ap, "Omega");
 
   const double prefactor = (m1*m2)/(m1+m2) * a*a * o.n * (m1/m2) * pow((r2/a), 5.) * 6. * (*k2) * invQ;
