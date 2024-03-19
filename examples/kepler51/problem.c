@@ -21,7 +21,7 @@ double cJ2;
 double dJ2;
 
 //char title[100] = "ls";
-char title_stats[100] = "222_kepler_mt_stats";
+char title_stats[100] = "319_kepler_mt_stats";
 //char title_remove[100] = "rm -v ls";
 
 int main(int argc, char* argv[]){
@@ -83,7 +83,7 @@ int main(int argc, char* argv[]){
     struct rebx_force* mof = rebx_load_force(rebx, "modify_orbits_forces");
     rebx_add_force(rebx, mof);
 
-    double tau_0 = -5e7 * 2 * M_PI;
+    double tau_0 = -5e6 * 2 * M_PI;
     double kappa = 100.;
     double beta = -1.7;
     for (unsigned int i = 2; i < sim->N; i++){
@@ -145,7 +145,7 @@ int main(int argc, char* argv[]){
     const double d_alpha_init = 0.5 * (star.m / md) * pow((rd / ad), 3.) * (dk2 / 0.25) * d_spin_p;
 
     struct reb_orbit o = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
-    tmax = 1e3*2*M_PI;//o.P * 1e8;
+    tmax = 1e7*2*M_PI;//o.P * 1e8;
     sim->dt = o.P / 15.12345;
     reb_simulation_integrate(sim, tmax);
 
