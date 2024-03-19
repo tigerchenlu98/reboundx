@@ -14,9 +14,9 @@ double obl(struct reb_vec3d v1, struct reb_vec3d v2){
   return acos(reb_vec3d_dot(v1,v2) / (sqrt(reb_vec3d_length_squared(v1)) * sqrt(reb_vec3d_length_squared(v2))));
 }
 
-char title[100] = "test_bigr";
+char title[100] = "319_low_incs_";
 char title_stats[100] = "zlk311_millholland_stats";
-char title_remove[100] = "rm -v test_bigr";
+char title_remove[100] = "rm -v 319_low_incs_";
 int ind;
 int printed_stats=1;
 double planet_a;
@@ -26,7 +26,7 @@ double planet_k2;
 
 double tscale = (4./365.) * 2 * M_PI;
 
-double tmax = 5e7*2*M_PI;
+double tmax = 1e8*2*M_PI;
 
 // RADIUS INFLATION
 double STEFF = 4780.;
@@ -44,64 +44,6 @@ double R_EARTH = 4.259e-5;
 double SUN_TEFF = 5780;
 
 double C0 = 0.131;
-
-double T1_Cs[4] = {-0.348,0.631,0.104,-0.179};
-
-double T2_Cs[4][4] = {{0.209,0.028,-0.168,0.008},
-                 {0.,0.086,-0.045,-0.036},
-                 {0.,0.,0.052,0.031},
-                 {0.,0.,0.,-0.009}};
-
-double get_Rp(double flux){
-    double x1 = log10(23.4);
-    double x2 = log10(0.2/0.05);
-    double x3 = log10(flux/FLUX_EARTH);
-    double x4 = log10(5/5);
-    double x_array[4] = {x1,x2,x3,x4};
-
-    double t1 = 0.;
-    for (int i = 0; i < 4; i++){
-        t1 += x_array[i] * T1_Cs[i];
-    }
-
-    double t2 = 0;
-    for (int i = 0; i < 4; i++){
-      for (int j = i; j < 4; j++){
-        t2 += T2_Cs[i][j] * x_array[i] * x_array[j];
-      }
-    }
-
-    double exponent = C0 + t1 + t2;
-
-    return pow(10., exponent) * R_EARTH;
-}
-
-// Interpolated curves
-// 0.0881, 10 Earth Mass Core
-double C1[3] = {2.15926161e-05, 4.02386269e-04, 2.18731715e-03};
-
-// 0.0881, 25 earth mass core
-double C2[3] = {3.89300825e-06, 7.32405935e-05, 5.10326839e-04};
-
-// 0.115, 25 earth mass core
-double C3[3] = {7.02292131e-06, 1.31862046e-04, 8.59659186e-04};
-
-// Sup-Neptune, icy core, 20 earth masses, 20% envelope fraction
-double C4[3] = {1.65036250e-06, 3.70396793e-05, 4.10083278e-04};
-
-
-double LJUP = 9.43093e-16;
-// Linder, interpolation is from Jupiter Luminosities->Earth Radii
-double LI[3] = {0.35031788, 1.44509504, 5.63739982};
-
-double interpolate_Rp(double lum){
-  if (lum/LJUP < 6e-1){
-    return 5.0 * R_EARTH;
-  }
-  else{
-    return (LI[0] * log10(lum/LJUP) * log10(lum/LJUP) + LI[1] * log10(lum/LJUP) + LI[2]) * R_EARTH;
-  }
-}
 
 double rebx_h1(double e){
   return 1. + (3./2.)*(e*e) + (1./8.)*(e*e*e*e) / pow((1. - e*e), (9./2.));
@@ -156,58 +98,8 @@ double Etide(struct reb_simulation* sim, struct reb_extras* rebx, struct reb_par
   return fabs(prefactor * (t1+t2+t3+t4));
 }
 
-double millholland_radius(struct reb_simulation* sim, struct reb_extras* rebx, struct reb_particle* planet, struct reb_particle* star){
-  struct reb_orbit o = reb_orbit_from_particle(sim->G, *planet, *star);
-  const double m1 = star->m;
-  const double m2 = planet->m;
-  const double r2 = planet->r;
-  const double a = o.a;
-  const double e = o.e;
-  const struct reb_vec3d n1 = o.hvec;
-
-  // Get obliquity
-  struct reb_vec3d* Omega = rebx_get_param(rebx, planet->ap, "Omega");
-  struct reb_vec3d line_of_nodes = reb_vec3d_cross((struct reb_vec3d){.z =1}, n1);
-  struct reb_rotation rot = reb_rotation_init_to_new_axes(n1, line_of_nodes); // Arguments to this function are the new z and x axes
-  if (isnan(rot.r)) {
-    rot = reb_rotation_identity();
-  }
-  struct reb_vec3d prot = reb_vec3d_rotate(*Omega, rot); // spin vector in the planet's frame
-
-  // Interpret the spin axis in the more natural spherical coordinates
-
-  double mag_p;
-  double theta_p;
-  double phi_p;
-  reb_tools_xyz_to_spherical(prot, &mag_p, &theta_p, &phi_p);
-
-
-  //double theta_p = 1. * M_PI/180.;
-  double cosp = cos(theta_p);
-  double sinp = sin(theta_p);
-
-  double t1 = pow(m2/(10.*M_EARTH),-0.24);
-
-  double fenv = 0.25;
-  double t2 = pow(fenv/0.05, 0.6);
-
-  double eccentric_flux = get_flux(a, SLUMINOSITY,e);
-  double t3 = pow(eccentric_flux/(100. * FLUX_EARTH), 0.24);
-  double Qprime = 3. * 1e5 / (2. * 0.5);
-  double tidal_param = (Qprime * (1 + cosp * cosp) / (sinp * sinp));
-  if (log10(tidal_param) > 7.){
-    tidal_param = pow(10.,7.);
-  }
-  double t4 = pow(tidal_param/1e5,-0.041);
-
-  double mcore = (1. - fenv);
-  double rcore = pow(mcore, 0.28) * R_EARTH;
-  double rad = 1.9 * t1 * t2 * t3 * t4 * R_EARTH + 0.97 * rcore;
-  return rad;
-}
-
 // MPB interpolation
-double MPB[5] = {3.00227021e-04, 3.73446269e-02, 1.49775430e+00, 2.46476401e+01, 1.49256117e+02};
+double MPB[5] = {7.64574018e-04, 6.68049662e-02, 2.17497515e+00, 3.12889017e+01, 1.71927977e+02};
 
 // Fit REBOUND luminosities to earth radii
 double interpolate_mpb(double lum){
@@ -240,16 +132,15 @@ int main(int argc, char* argv[]){
  // HAT-P-11b
  // Yee et al 2018
  struct reb_particle planet = {0};
- double planet_m  = reb_random_uniform(sim, 0.0736 - 0.0047, 0.0736 + 0.0047) * 9.55e-4;
+ double planet_m  = 0.0736 * 9.55e-4;
  //rfac = reb_random_uniform(sim, 1.2, 3.0);
  double planet_r = 4.36 * 4.2588e-5;// doesn't matter, instantly overwritten
- planet_a = 0.5;//reb_random_uniform(sim, 0.3, 0.5);
- double planet_e = 0.1;//reb_random_uniform(sim, 0.01, 0.1);
+ planet_a = reb_random_uniform(sim, 0.3, 0.5);
+ double planet_e = 0.01;
  double planet_Omega = (117.1 - 180.) * (M_PI / 180.); //reb_random_uniform(sim, 0., 2 * M_PI);
  double planet_omega = 0.;//reb_random_uniform(sim, 0.0, 2 * M_PI);
  double planet_f = 0;//reb_random_uniform(sim, 0.0, 2 * M_PI);
- double planet_inc = 70. * M_PI/180.;//reb_random_uniform(sim, 6. * M_PI/180., 39. * M_PI/180.);
- //double planet_inc = 106. * M_PI/180.;
+ double planet_inc = reb_random_uniform(sim, 6. * M_PI/180., 39. * M_PI/180.);
 
  // HAT-P-11c - treated as a point particle
 
@@ -296,14 +187,14 @@ int main(int argc, char* argv[]){
   rebx_set_param_double(rebx, &sim->particles[0].ap, "tau", 1e-8);
 
   // Planet
-  planet_k2 = 0.5;//reb_random_uniform(sim, 0.1, 0.8);
+  planet_k2 = 0.5;
   rebx_set_param_double(rebx, &sim->particles[1].ap, "k2", planet_k2);
   rebx_set_param_double(rebx, &sim->particles[1].ap, "I", 0.25 * planet_m * planet_r * planet_r);
 
   const double spin_period_p = 1. * 2. * M_PI / 365.; // days to reb years
   const double spin_p = (2. * M_PI) / spin_period_p;
   struct reb_orbit ob = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
-  struct reb_vec3d Omega_sv = reb_vec3d_mul(reb_vec3d_normalize(ob.hvec), ob.n);
+  struct reb_vec3d Omega_sv = reb_vec3d_mul(reb_vec3d_normalize(ob.hvec), spin_p);
   rebx_set_param_vec3d(rebx, &sim->particles[1].ap, "Omega", Omega_sv);
   rebx_set_param_double(rebx, &sim->particles[1].ap, "tau", 1e-4);
 
@@ -348,9 +239,9 @@ int main(int argc, char* argv[]){
 
   double p_ob = obl(*Omega_sun, n1);
 
-  FILE* sf = fopen(title_stats, "a");
-  fprintf(sf, "%d,%f,%f,%f,%f,%f,%f,1\n", ind, orb.e, sim->particles[1].r / R_EARTH, planet_a, planet_k2, angle*180./M_PI,p_ob * 180./M_PI);
-  fclose(sf);
+  //FILE* sf = fopen(title_stats, "a");
+  //fprintf(sf, "%d,%f,%f,%f,%f,%f,%f,1\n", ind, orb.e, sim->particles[1].r / R_EARTH, planet_a, planet_k2, angle*180./M_PI,p_ob * 180./M_PI);
+  //fclose(sf);
 
   rebx_free(rebx);
   reb_simulation_free(sim);
@@ -361,41 +252,14 @@ void heartbeat(struct reb_simulation* sim){
    // Radius INFLATION
    if(reb_simulation_output_check(sim, tscale)){
      struct rebx_extras* const rebx = sim->extras;
-     struct reb_particle* sun = &sim->particles[0];
      struct reb_particle* p1 = &sim->particles[1];
-  /*
-     double dx = p1->x - sun->x;
-     double dy = p1->y - sun->y;
-     double dz = p1->z - sun->z;
-     double d = sqrt(dx*dx+dy*dy+dz*dz);
-
-     double flux = get_flux(d, SLUMINOSITY);
-     */
      double lum = Etide(sim, rebx, &sim->particles[1], &sim->particles[0]);
      double rad = interpolate_mpb(lum);
      p1->r = rad;
-
-
-     // Check for break
-     struct reb_orbit orb = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
-     struct reb_vec3d n1 = orb.hvec;
-
-     //struct reb_particle* sun = &sim->particles[0];
-     struct reb_vec3d* Omega_sun = rebx_get_param(rebx, sun->ap, "Omega");
-
-     double p_ob = obl(*Omega_sun, n1);
-     //if (orb.a < 0.05){
-
-       //FILE* sf = fopen(title_stats, "a");
-       //fprintf(sf, "%d,%f,%f,%f,%f,%f,%f,0\n", ind, orb.e, sim->particles[1].r / R_EARTH, planet_a, planet_k2, angle*180./M_PI,p_ob * 180./M_PI);
-       //fclose(sf);
-       //exit(1);
-     //}
-
    }
    // Output spin and orbital information to file
 
-   if(reb_simulation_output_check(sim, 10. * 2 * M_PI)){        // outputs every 100 years
+   if(reb_simulation_output_check(sim, 1000. * 2 * M_PI)){        // outputs every 100 years
      struct rebx_extras* const rebx = sim->extras;
 
      struct reb_particle* sun = &sim->particles[0];
@@ -451,6 +315,10 @@ void heartbeat(struct reb_simulation* sim){
      fprintf(of, "%f,%e,%f,%f,%f,%e,%f,%f,%f,%f,%f,%f,%e\n", sim->t,a1,i1,e1,p_ob,a2,i2,e2,pert_ob,mi,mag_p,theta_p,p1->r); // print spins and orbits
      //fprintf(of, "%f,%e,%f,%f,%f,%e,%f,%f\n", sim->t,a1,i1,e1,p_ob,mag_p,theta_p,phi_p);
      fclose(of);
+
+     if (a1 < 0.04){
+       exit(1);
+     }
 
    }
 
