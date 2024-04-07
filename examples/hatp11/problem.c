@@ -14,15 +14,17 @@ double obl(struct reb_vec3d v1, struct reb_vec3d v2){
   return acos(reb_vec3d_dot(v1,v2) / (sqrt(reb_vec3d_length_squared(v1)) * sqrt(reb_vec3d_length_squared(v2))));
 }
 
-char title[100] = "319_high_incs_";
-char title_stats[100] = "zlk311_millholland_stats";
-char title_remove[100] = "rm -v 319_high_incs_";
+//char title[100] = "319_high_incs_";
+char title_stats[100] = "47_pop_synth_q1e5";
+//char title_remove[100] = "rm -v 319_high_incs_";
 int ind;
 int printed_stats=1;
 double planet_a;
 double rfac;
 double angle;
-double planet_k2;
+double planet_k2 = 0.5;
+double QPRIME = 3e5;
+double RAD_TAU;
 
 double tscale = (4./365.) * 2 * M_PI;
 
@@ -54,7 +56,7 @@ double rebx_h2(double e){
 }
 
 double rebx_h3(double e){
-  return ((1. + 3. * (e*e) + 3. * (e*e*e*e))/8.) / pow((1. - e*e), (9./2.));
+  return ((1. + 3. * (e*e) + 3. * (e*e*e*e)/8.) / pow((1. - e*e), (9./2.)));
 }
 
 double rebx_h4(double e){
@@ -77,14 +79,9 @@ double Etide(struct reb_simulation* sim, struct reb_extras* rebx, struct reb_par
   struct reb_vec3d ehat = reb_vec3d_normalize(o.evec);
   struct reb_vec3d qhat = reb_vec3d_cross(hhat, ehat);
 
-  const double* k2 = rebx_get_param(rebx, planet->ap, "k2");
-  //const double* tau = rebx_get_param(rebx, planet->ap, "tau");
-  //const double tau = 1e-9; // manually set this
-  //const double invQ = (2. * o.n * tau);
-  const double invQ = 1./3e7;
   struct reb_vec3d* Omega = rebx_get_param(rebx, planet->ap, "Omega");
 
-  const double prefactor = (m1*m2)/(m1+m2) * a*a * o.n * (m1/m2) * pow((r2/a), 5.) * 6. * (*k2) * invQ;
+  const double prefactor = (m1*m2)/(m1+m2) * a*a * o.n * (m1/m2) * pow((r2/a), 5.) * 3./(2. * QPRIME);
 
   const double Omega_e = reb_vec3d_dot(*Omega, ehat);
   const double Omega_q = reb_vec3d_dot(*Omega, qhat);
@@ -93,18 +90,23 @@ double Etide(struct reb_simulation* sim, struct reb_extras* rebx, struct reb_par
   const double t1 = 0.5 * (Omega_e * Omega_e * rebx_h1(e) + Omega_q * Omega_q * rebx_h2(e));
   const double t2 = Omega_h * Omega_h * rebx_h3(e);
   const double t3 = -2. * o.n * Omega_h * rebx_h4(e);
-  const double t4 = o.n*o.n + rebx_h5(e);
+  const double t4 = o.n*o.n * rebx_h5(e);
 
   return fabs(prefactor * (t1+t2+t3+t4));
 }
 
 // MPB interpolation
-double MPB[5] = {7.64574018e-04, 6.68049662e-02, 2.17497515e+00, 3.12889017e+01, 1.71927977e+02};
+double MPB[5] = {4.65862052e-04, 2.97094603e-02, 7.07034050e-01, 7.44635125e+00, 3.28282919e+01};
+double LSOLAR =  1.08827e-6;
 
 // Fit REBOUND luminosities to earth radii
 double interpolate_mpb(double lum){
-  double llum = log10(lum);
+  double llum = log10(lum/LSOLAR);
   return (MPB[0] * llum * llum * llum * llum + MPB[1] * llum * llum * llum + MPB[2] * llum * llum + MPB[3] * llum + MPB[4]) * R_EARTH;
+}
+
+double pseudo_sync(double e, double n){
+    return ((1. + 15./2. * e*e + 45./8. * e*e*e*e + 5./16. * e*e*e*e*e*e) / ((1 + 3*e*e + 3/8*e*e*e*e)*pow(1-e*e, 3./2))*n);
 }
 
 int main(int argc, char* argv[]){
@@ -114,8 +116,8 @@ int main(int argc, char* argv[]){
 
  ind = 0;
  if (argc == 2){
-   strcat(title, argv[1]);
-   strcat(title_remove, argv[1]);
+   //strcat(title, argv[1]);
+   //strcat(title_remove, argv[1]);
    ind = atoi(argv[1]);
  }
 
@@ -133,14 +135,13 @@ int main(int argc, char* argv[]){
  // Yee et al 2018
  struct reb_particle planet = {0};
  double planet_m  = 0.0736 * 9.55e-4;
- //rfac = reb_random_uniform(sim, 1.2, 3.0);
  double planet_r = 4.36 * 4.2588e-5;// doesn't matter, instantly overwritten
  planet_a = reb_random_uniform(sim, 0.3, 0.5);
  double planet_e = 0.01;
  double planet_Omega = (117.1 - 180.) * (M_PI / 180.); //reb_random_uniform(sim, 0., 2 * M_PI);
- double planet_omega = 0.;//reb_random_uniform(sim, 0.0, 2 * M_PI);
- double planet_f = 0;//reb_random_uniform(sim, 0.0, 2 * M_PI);
- double planet_inc = reb_random_uniform(sim, 40. * M_PI/180., 100. * M_PI/180.);
+ double planet_omega = reb_random_uniform(sim, 0.0, 2 * M_PI);
+ double planet_f = reb_random_uniform(sim, 0.0, 2 * M_PI);
+ double planet_inc = reb_random_uniform(sim, 10. * M_PI/180., 100. * M_PI/180.);
 
  // HAT-P-11c - treated as a point particle
 
@@ -158,7 +159,10 @@ int main(int argc, char* argv[]){
    struct reb_orbit o1 = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
    struct reb_orbit o2 = reb_orbit_from_particle(sim->G, sim->particles[2], sim->particles[0]);
    angle = acos(reb_vec3d_dot(o1.hvec, o2.hvec) / (sqrt(reb_vec3d_length_squared(o1.hvec)) * sqrt(reb_vec3d_length_squared(o2.hvec))));
-   //printf("%f\n", angle * 180./M_PI);
+   if (angle * 180./M_PI < 40.){
+     printf("Bad\n");
+     exit(1);
+   }
 
  // Initial conditions
   // Setup constants
@@ -194,7 +198,7 @@ int main(int argc, char* argv[]){
   const double spin_period_p = 1. * 2. * M_PI / 365.; // days to reb years
   const double spin_p = (2. * M_PI) / spin_period_p;
   struct reb_orbit ob = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
-  struct reb_vec3d Omega_sv = reb_vec3d_mul(reb_vec3d_normalize(ob.hvec), spin_p);
+  struct reb_vec3d Omega_sv = reb_vec3d_mul(reb_vec3d_normalize(ob.hvec), pseudo_sync(0.218, ob.n));
   rebx_set_param_vec3d(rebx, &sim->particles[1].ap, "Omega", Omega_sv);
   rebx_set_param_double(rebx, &sim->particles[1].ap, "tau", 1e-4);
 
@@ -220,6 +224,8 @@ int main(int argc, char* argv[]){
   double lum = Etide(sim, rebx, &sim->particles[1], &sim->particles[0]);
   double rad = interpolate_mpb(lum);
   sim->particles[1].r = rad;
+  //printf("%e %f %f %f\n", lum/LSOLAR, rad/R_EARTH, pseudo_sync(0.218, ob.n), ob.n);
+  /*
   system(title_remove);
 
   FILE* of = fopen(title, "w");
@@ -228,6 +234,7 @@ int main(int argc, char* argv[]){
   //fprintf(of, "t,a1,i1,e1,p_ob,mag_p,theta_p,phi_p\n");
   //"t,ssx,ssy,ssz,mag1,theta1,phi1,a1,e1,nx1,ny1,nz1,nOm1,pom1,a2,e2,i2,Om2,pom2,nx2,ny2,nz2,p_ob,pert_ob,mi\n");
   fclose(of);
+  */
 
 
   reb_simulation_integrate(sim, tmax);
@@ -239,9 +246,9 @@ int main(int argc, char* argv[]){
 
   double p_ob = obl(*Omega_sun, n1);
 
-  //FILE* sf = fopen(title_stats, "a");
-  //fprintf(sf, "%d,%f,%f,%f,%f,%f,%f,1\n", ind, orb.e, sim->particles[1].r / R_EARTH, planet_a, planet_k2, angle*180./M_PI,p_ob * 180./M_PI);
-  //fclose(sf);
+  FILE* sf = fopen(title_stats, "a");
+  fprintf(sf, "%d,%f,%f,%f,%f,%f,1\n", ind, orb.e, sim->particles[1].r / R_EARTH, planet_a, angle*180./M_PI,p_ob * 180./M_PI);
+  fclose(sf);
 
   rebx_free(rebx);
   reb_simulation_free(sim);
@@ -256,9 +263,24 @@ void heartbeat(struct reb_simulation* sim){
      double lum = Etide(sim, rebx, &sim->particles[1], &sim->particles[0]);
      double rad = interpolate_mpb(lum);
      p1->r = rad;
+
+     struct reb_orbit orb = reb_orbit_from_particle(sim->G, sim->particles[1], sim->particles[0]);
+     if (orb.a < 0.0524){
+       struct reb_vec3d n1 = orb.hvec;
+
+       struct reb_particle* sun = &sim->particles[0];
+       struct reb_vec3d* Omega_sun = rebx_get_param(rebx, sun->ap, "Omega");
+
+       double p_ob = obl(*Omega_sun, n1);
+
+       FILE* sf = fopen(title_stats, "a");
+       fprintf(sf, "%d,%f,%f,%f,%f,%f,0\n", ind, orb.e, sim->particles[1].r / R_EARTH, planet_a, angle*180./M_PI,p_ob * 180./M_PI);
+       fclose(sf);
+       exit(1);
+     }
    }
    // Output spin and orbital information to file
-
+/*
    if(reb_simulation_output_check(sim, 1000. * 2 * M_PI)){        // outputs every 100 years
      struct rebx_extras* const rebx = sim->extras;
 
@@ -321,7 +343,7 @@ void heartbeat(struct reb_simulation* sim){
      }
 
    }
-
+*/
 
 
    //if(reb_simulation_output_check(sim, 20.*M_PI)){        // outputs to the screen
