@@ -95,34 +95,36 @@ struct reb_vec3d rebx_calculate_spin_orbit_accelerations(struct reb_particle* so
   const double dy = source->y - target->y;
   const double dz = source->z - target->z;
   const double d2 = dx * dx + dy * dy + dz * dz;
-  const double dr = sqrt(d2);
-
-  // Velocity vector: i to j
-  const double dvx = source->vx - target->vx;
-  const double dvy = source->vy - target->vy;
-  const double dvz = source->vz - target->vz;
-  //const double vel2 = dvx * dvx + dvy * dvy + dvz * dvz;
-  //const double vr = sqrt(vel2);
 
   struct reb_vec3d tot_force = {0};
 
   if (k2 != 0.0){
+    const double dr = sqrt(d2);
+    const double d4 = d2 * d2;
+    const double d5 = d4 * dr;
+    const double d7 = d5 * d2;
+    const double d8 = d4 * d4;
+
     // Eggleton et. al 1998 quadrupole (equation 33)
     const double quad_prefactor = mt * big_a / mu_ij;
     const double omega_dot_d = Omega.x * dx + Omega.y * dy + Omega.z * dz;
     const double omega_squared = Omega.x * Omega.x + Omega.y * Omega.y + Omega.z * Omega.z;
 
-    const double t1 = 5. * omega_dot_d * omega_dot_d / (2. * (dr * dr * dr * dr * dr * dr * dr));
-    const double t2 = omega_squared / (2. * (dr * dr * dr * dr * dr));
-    const double t3 = omega_dot_d / (dr * dr * dr * dr * dr);
-    const double t4 = 3. * G * mt / (dr * dr * dr * dr * dr * dr * dr * dr);
+    const double t1 = 5. * omega_dot_d * omega_dot_d / (2. * d7);
+    const double t2 = omega_squared / (2. * d5);
+    const double t3 = omega_dot_d / d5;
+    const double t4 = 3. * G * mt / d8;
 
     tot_force.x = (quad_prefactor * ((t1 - t2 - t4) * dx - (t3 * Omega.x)));
     tot_force.y = (quad_prefactor * ((t1 - t2 - t4) * dy - (t3 * Omega.y)));
     tot_force.z = (quad_prefactor * ((t1 - t2 - t4) * dz - (t3 * Omega.z)));
 
     if (sigma != 0.0){
+      const double d10 = d5 * d5;
       // Eggleton et. al 1998 tidal (equation 45)
+      const double dvx = source->vx - target->vx;
+      const double dvy = source->vy - target->vy;
+      const double dvz = source->vz - target->vz;
       const double d_dot_vel = dx*dvx + dy*dvy + dz*dvz;
 
       // first vector
@@ -145,7 +147,7 @@ struct reb_vec3d rebx_calculate_spin_orbit_accelerations(struct reb_particle* so
       const double vec2_y = comp_2_z * dx - comp_2_x * dz;
       const double vec2_z = comp_2_x * dy - comp_2_y * dx;
 
-      const double prefactor = (-9. * sigma * mt * mt * big_a * big_a) / (2. * mu_ij * (d2 * d2 * d2 * d2 * d2));
+      const double prefactor = (-9. * sigma * mt * mt * big_a * big_a) / (2. * mu_ij * d10);
 
       tot_force.x += (prefactor * (vec1_x + vec2_x));
       tot_force.y += (prefactor * (vec1_y + vec2_y));
